@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.5] - 2026-05-15
+
+### Added
+
+- FS.COM brand pack with 4 switches (S8050-20Q4C, S5850-32S2Q, S5850-24S2Q, S3410-10TF-P) and 4 missing Netgear models (XSM7224S, GS752TXS, M4350-32F8V, M4350-24X8F8V) — first-time contribution from @churtado-tech (#1662)
+
+### Fixed
+
+- Claude code review workflow on fork PRs — use `pull_request_target` then revert to `pull_request` with fork skip (#1669, PR #1670, PR #1671)
+- Code quality findings from CodeQL/Copilot analysis (#1639, #1640)
+
+### Security
+
+- Patch Alpine packages in api Dockerfile to resolve CVE-2026-31789 (OpenSSL heap buffer overflow) and clear 7 related Alpine HIGH CVEs blocking the prod deploy gate (#1672)
+
+### Technical
+
+- TypeScript 5.9.3 → 6.0.3 (#1635)
+- Svelte 5.55.5 → 5.55.7 (#1667)
+- kysely 0.28.14 → 0.28.17 in /api (#1654)
+- Update CodeQL action version and exit code
+- VPS migration research documentation
+- Dependency bumps: @types/node, fast-uri, @eslint/compat, @vitest/eslint-plugin, typescript-eslint, and production/development dependency groups
+
 ## [0.9.4] - 2026-05-01
 
 ### Added
