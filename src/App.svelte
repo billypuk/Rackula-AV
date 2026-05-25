@@ -315,6 +315,15 @@
     }
   });
 
+  function handleShowLayouts() {
+    if (uiStore.warnOnUnsavedChanges && layoutStore.isDirty) {
+      if (!window.confirm("You have unsaved changes. Leave anyway?")) {
+        return;
+      }
+    }
+    showStartScreen = true;
+  }
+
   function handleStartScreenClose(options?: StartScreenCloseOptions) {
     showStartScreen = false;
 
@@ -537,6 +546,7 @@
       onimportdevices={handleImportDevices}
       onimportnetbox={handleImportFromNetBox}
       onnewcustomdevice={handleAddDevice}
+      onlayouts={handleShowLayouts}
       onfitall={handleFitAll}
       ontoggletheme={handleToggleTheme}
       ontoggledisplaymode={handleToggleDisplayMode}

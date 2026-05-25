@@ -60,6 +60,7 @@
     ontogglepromptcleanup?: () => void;
     onopencleanup?: () => void;
     onhelp?: () => void;
+    onlayouts?: () => void;
   }
 
   let {
@@ -92,6 +93,7 @@
     ontogglepromptcleanup,
     onopencleanup,
     onhelp,
+    onlayouts,
   }: Props = $props();
 
   const layoutStore = getLayoutStore();
@@ -168,6 +170,11 @@
   function handleNewCustomDevice() {
     analytics.trackToolbarClick("new-custom-device");
     onnewcustomdevice?.();
+  }
+
+  function handleLayouts() {
+    analytics.trackToolbarClick("layouts");
+    onlayouts?.();
   }
 
   function handleFitAll() {
@@ -411,6 +418,7 @@
         onimportdevices={handleImportDevices}
         onimportnetbox={handleImportNetBox}
         onnewcustomdevice={handleNewCustomDevice}
+        onlayouts={onlayouts ? handleLayouts : undefined}
         {hasRacks}
       />
 
@@ -464,6 +472,17 @@
       >
         Export
       </button>
+      {#if onlayouts}
+        <button
+          class="toolbar-mobile-action-btn"
+          type="button"
+          aria-label="Go to Layouts"
+          onclick={handleLayouts}
+          data-testid="btn-mobile-layouts"
+        >
+          Layouts
+        </button>
+      {/if}
     </div>
   {/if}
 </header>
