@@ -52,10 +52,9 @@ trap cleanup EXIT
 failures=0
 checked=0
 
-# verify_image <label> <image_ref> <container_port> <path> [docker_run_args...]
+# verify_image <label> <image_ref> <container_port> <path> [extra_docker_args]
 verify_image() {
-  local label="$1" image="$2" container_port="$3" path="$4"; shift 4
-  local run_args=("$@")
+  local label="$1" image="$2" container_port="$3" path="$4" extra_args="${5:-}"
 
   # Count the attempt up front so every exit path (including failures below)
   # leaves a non-zero "checked" total — otherwise a sole image that fails here
@@ -64,7 +63,12 @@ verify_image() {
 
   echo "→ ${label}: starting ${image}"
   local cid
-  cid="$(docker run -d -P "${run_args[@]+"${run_args[@]}"} "$image")"
+  if [[ -n "$extra_args" ]]; then
+    # shellcheck disable=SC2086
+    cid="$(docker run -d -P $extra_args "$image")"
+  else
+    cid="$(docker run -d -P "$image")"
+  fi
   CONTAINERS+=("$cid")
 
   # Resolve the ephemeral host port Docker mapped to the container port.
@@ -97,7 +101,7 @@ verify_image() {
 
 [[ -n "${FRONTEND_IMAGE:-}" ]] && verify_image "frontend (static)" "$FRONTEND_IMAGE" 8080 "/version.json"
 [[ -n "${PERSIST_IMAGE:-}" ]] && verify_image "frontend (persist)" "$PERSIST_IMAGE" 8080 "/version.json"
-[[ -n "${API_IMAGE:-}" ]] && verify_image "api" "$API_IMAGE" 3001 "/api/version" ${API_RUN_ENV:-}
+[[ -n "${API_IMAGE:-}" ]] && verify_image "api" "$API_IMAGE" 3001 "/api/version" "${API_RUN_ENV:-}"
 
 if [[ "$checked" -eq 0 ]]; then
   echo "ERROR: no images to check; set FRONTEND_IMAGE, PERSIST_IMAGE, and/or API_IMAGE" >&2
