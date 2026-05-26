@@ -5,6 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-05-26
+
+### Added
+
+- Right-click context menu for custom devices in the device palette (#1701)
+- Persist viewport zoom/pan across page reloads (#118)
+- Share URL length warning at 1800 chars with a download-layout-file fallback (#1720)
+- Validate interface positions on half-depth device types (#254)
+- Layouts navigation in the File Menu and mobile toolbar (#1722)
+- Vector PDF export for AutoCAD compatibility (#1731, PR #1734)
+- Cross-rack device drag-and-drop (#1592, PR #1744)
+
+### Changed
+
+- Replace pako with lz-string for share-URL compression (#1718)
+
+### Fixed
+
+- Sync U-numbering settings across bayed rack groups (#1520, PR #1702)
+- Convert position from internal units in the resize validator (#1683, PR #1695)
+- Sync layout name to the first rack on creation (#1481, #1482, PR #1687)
+- Clean up cables when a device type is deleted (#1483, PR #1693)
+- Skip pointer drag events outside rack SVG bounds (#1467, PR #1690)
+- Respect per-device face in PNG export filter (#1681, PR #1682)
+- Respect half-width slot_position in PNG export (#1660, PR #1679)
+- Drop legacy AUTH*\*/API*\* env-var fallbacks in the api (#1692)
+- Recover slot_position and slot_width for half-width pairs on load (#1602, PR #1704)
+- Fix OIDC auth redirect port when behind a reverse proxy (#1714)
+- Right-click context menus now open at the cursor instead of the top-left origin (#1725, PR #1726)
+- Reduce text stroke-width and remove unsupported paint-order (PR #1737)
+- PDF export rendering regressions — bay labels duplicated in bayed racks, structural labels render in serif font, device names offset upward (#1738, #1739, #1740, PR #1741)
+
+### Security
+
+- Resolve all 7 open Trivy code-scanning alerts on the api image by bumping better-auth 1.5.1 → 1.6.2 (#1676), removing/upgrading vulnerable transitive deps: kysely (CVE-2026-44635, -33468, -32763), defu (CVE-2026-35209), lodash (CVE-2026-4800), effect (CVE-2026-32887), drizzle-orm (CVE-2026-39356)
+- Patch hono + defu dependency CVEs in the api (#1691)
+- Add `base-uri 'self'` to Content-Security-Policy headers (#1723)
+- Bump qs 6.15.1 → 6.15.2 (#1721)
+
+### Technical
+
+- Enable TypeScript strict mode on the frontend (#1609, PR #1709)
+- Split api security.ts into focused modules (#1611, PR #1689)
+- Introduce mountWithAlias helper for /api/\* route aliases (#1684)
+- On-demand Trivy security scan workflow aligned with deploy-prod (#1675)
+- Post-release version-alignment test across published Docker images (#1728, PR #1730)
+- Dev deploy workflow fails loudly if data dir not writable by uid 1001 (#1742)
+- Disable binfmt cache to fix parallel cache-save collisions in CI (#1688)
+- Resolve a CodeQL code-quality finding (#1703)
+- Dependency bumps: svelte, vitest, tsx, marked, @types/node, eslint, typescript-eslint, and the production/development/actions dependency groups
+
 ## [0.9.5] - 2026-05-15
 
 ### Added
