@@ -4,10 +4,11 @@ export default defineConfig({
   webServer: {
     command: "npm run build && npm run preview",
     port: 4173,
+    cwd: "..",
   },
-  testDir: "e2e",
+  testDir: ".",
   fullyParallel: true,
-  forbidOnly: process.env.CI === "true" || process.env.CI === "1",
+  forbidOnly: !!process.env.CI,
   retries: 2,
   reporter: [["html", { open: "never" }]],
   use: {
