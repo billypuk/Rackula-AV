@@ -16,16 +16,16 @@ test.describe("Persistence", () => {
     await gotoWithRack(page, MEDIUM_RACK_SHARE);
   });
 
-  test("save layout downloads ZIP file", async ({ page }) => {
+  test("save layout downloads YAML file", async ({ page }) => {
     // Set up download listener
     const downloadPromise = page.waitForEvent("download");
 
     // Click save button
     await clickSave(page);
 
-    // Wait for download
+    // Wait for download (default save format is YAML, #1754)
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.zip$/);
+    expect(download.suggestedFilename()).toMatch(/\.rackula\.yaml$/);
   });
 
   test("saved file contains correct layout structure", async ({ page }) => {
@@ -42,28 +42,16 @@ test.describe("Persistence", () => {
     const download = await downloadPromise;
     const savePath = await download.path();
 
-    if (savePath) {
-      const fs = await import("fs/promises");
-      const JSZip = (await import("jszip")).default;
+    expect(savePath).toBeTruthy();
 
-      // Read the ZIP file
-      const zipData = await fs.readFile(savePath);
-      const zip = await JSZip.loadAsync(zipData);
+    const fs = await import("fs/promises");
 
-      // ZIP contains folder/[name].yaml
-      const files = Object.keys(zip.files);
-      const yamlFile = files.find((f) => f.endsWith(".yaml"));
-      expect(yamlFile).toBeDefined();
+    // Default save is a standalone YAML file (#1754), not a ZIP archive
+    const yamlContent = await fs.readFile(savePath!, "utf-8");
 
-      if (yamlFile) {
-        const yamlContent = await zip.file(yamlFile)?.async("string");
-        expect(yamlContent).toBeDefined();
-
-        // YAML should contain the rack name
-        expect(yamlContent).toContain("name:");
-        expect(yamlContent).toContain("Standard Rack");
-      }
-    }
+    // YAML should contain the rack name
+    expect(yamlContent).toContain("name:");
+    expect(yamlContent).toContain("Standard Rack");
   });
 
   test("load layout from file restores rack", async ({ page }) => {
@@ -79,7 +67,9 @@ test.describe("Persistence", () => {
     const download = await downloadPromise;
 
     // Save to stable test output path
-    const savedPath = test.info().outputPath("persistence-load-test.Rackula.zip");
+    const savedPath = test
+      .info()
+      .outputPath("persistence-load-test.rackula.yaml");
     await download.saveAs(savedPath);
 
     // Reload with a fresh rack (no devices)
