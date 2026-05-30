@@ -5,12 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
-## [26.5.0] - 2026-05-30
+## [26.5.0] - 2026-05-29
+
+First CalVer release. Rackula has moved from SemVer (0.MINOR.PATCH) to Calendar Versioning (YY.M.MICRO). Future versions follow the format YY.M.MICRO where YY is the 2-digit year, M is the unpadded month, and MICRO is the release counter within that month.
 
 ### Changed
 
-- Migrated from SemVer (`0.MINOR.PATCH`) to CalVer (`YY.M.MICRO`) versioning
-- Version format is now `YY.M.MICRO` where `YY` = 2-digit year, `M` = unpadded month, `MICRO` = release counter
+- Migrated from SemVer (0.MINOR.PATCH) to CalVer (YY.M.MICRO) versioning (#1315, #1808, PR #1816)
+
+### Fixed
+
+- LXC installation script: community-scripts compliance, security hardening, and reliability fixes (#1211, PR #1797)
+- Bun installer pipe suppressed by $STD wrapper in LXC script (PR #1817)
+- LXC install script: apt replaces apt-get for community-scripts compatibility (PR #1800)
+
+### Technical
+
+- CalVer release tooling: version script, deploy workflow, /release skill, and CI config (#1803-#1806)
+- CLAUDE.md versioning policy rewritten for CalVer (#1807, PR #1812)
+- README refreshed for FOSS professionalism (#1353, PR #1818)
+- Writing style directives: no em dashes, no emoji in docs, succinct language (#1353, PR #1820)
+- Deploy config parity safeguards and scripts documentation (PR #1799)
+- Root config tidying: Playwright configs, env examples (PR #1798)
+- Repo root cleanup: empty dirs, orphaned files, AI doc consolidation (PR #1796)
+- Bump eslint 10.4.0 to 10.4.1 (PR #1801)
 
 ## [0.10.1] - 2026-05-29
 
