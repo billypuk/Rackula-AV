@@ -77,7 +77,7 @@ echo "Last release: $LAST_TAG"
 ### 1b. Get Commits Since Last Release
 
 ```bash
-git log $LAST_TAG..HEAD --oneline --no-merges
+git log "$LAST_TAG"..HEAD --oneline --no-merges
 ```
 
 ### 1c. Get Merged PRs Since Last Release
@@ -191,8 +191,7 @@ Proceed? [y/n]:
 **No argument (auto-compute):**
 
 ```bash
-NEW_VERSION=$(scripts/next-version.sh --dry-run)
-if [ $? -ne 0 ]; then
+if ! NEW_VERSION=$(scripts/next-version.sh --dry-run); then
   echo "ERROR: Failed to compute next version. Check scripts/next-version.sh output."
   exit 1
 fi
@@ -260,10 +259,19 @@ git commit -m "docs: update changelog and security policy for v$NEW_VERSION"
 ```bash
 npm version $NEW_VERSION --no-git-tag-version
 git add package.json package-lock.json
-git commit --amend -m "v$NEW_VERSION"
+git commit -m "chore(release): bump version to v$NEW_VERSION"
 ```
 
-### 4f. Create Tag and Push
+### 4f. Verify Remote Tag Does Not Already Exist
+
+```bash
+if git ls-remote --tags origin "refs/tags/v$NEW_VERSION" | grep -q .; then
+  echo "Error: Tag v$NEW_VERSION already exists on origin."
+  exit 1
+fi
+```
+
+### 4g. Create Tag and Push
 
 ```bash
 git tag "v$NEW_VERSION"
@@ -305,7 +313,7 @@ gh run watch
 | No changes since last release | "No changes found. Nothing to release."                                              |
 | Uncommitted changes           | "Error: Working directory not clean. Commit or stash changes first."                 |
 | Not on main branch            | "Error: Must be on main branch to release."                                          |
-| Tag already exists            | "Error: Tag vX.Y.Z already exists."                                                  |
+| Tag already exists            | "Error: Tag vX.Y.Z already exists (locally or on origin)."                           |
 | next-version.sh fails         | "Error: Failed to compute next version. Check scripts/next-version.sh output."       |
 | Invalid explicit version      | "Error: Version 'X' is not valid CalVer format (expected YY.M.MICRO, e.g., 26.6.0)." |
 | Zero-padded month             | "Error: Month must be unpadded (e.g., 26.6.0 not 26.06.0)."                          |
