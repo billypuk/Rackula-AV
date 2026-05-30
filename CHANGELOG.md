@@ -7,7 +7,7 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [26.5.0] - 2026-05-29
 
-First CalVer release. Rackula has moved from SemVer (0.MINOR.PATCH) to Calendar Versioning (YY.M.MICRO). Future versions follow the format YY.M.MICRO where YY is the 2-digit year, M is the unpadded month, and MICRO is the release counter within that month.
+First CalVer release. Rackula has moved from SemVer (0.MINOR.PATCH) to Calendar Versioning (YY.M.MICRO). Future versions follow the format YY.M.MICRO where YY is the 2-digit year, M is the unpadded month, and MICRO is the release counter within that month (starting at 0).
 
 ### Changed
 
