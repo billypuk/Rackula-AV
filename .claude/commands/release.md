@@ -67,9 +67,11 @@ START
 
 ```bash
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+HAS_LAST_TAG=true
 if [ -z "$LAST_TAG" ]; then
+  HAS_LAST_TAG=false
   echo "No previous tags found. This will be the first release."
-  LAST_TAG="HEAD~100"  # Fall back to recent history
+  LAST_TAG="HEAD~100"  # Fall back to recent history for range-based queries
 fi
 echo "Last release: $LAST_TAG"
 ```
@@ -83,8 +85,12 @@ git log "$LAST_TAG"..HEAD --oneline --no-merges
 ### 1c. Get Merged PRs Since Last Release
 
 ```bash
-# Get the date of the last tag
-LAST_DATE=$(git log -1 --format=%aI $LAST_TAG 2>/dev/null || echo "2025-01-01")
+# Get the date of the last real tag (or use fixed fallback for first release)
+if [ "$HAS_LAST_TAG" = true ]; then
+  LAST_DATE=$(git log -1 --format=%aI "$LAST_TAG" 2>/dev/null || echo "2025-01-01")
+else
+  LAST_DATE="2025-01-01"
+fi
 
 gh pr list --state merged --search "merged:>$LAST_DATE" \
   --json number,title,labels \
@@ -212,9 +218,14 @@ if [ "$MONTH_PART" != "$(echo "$MONTH_PART" | sed 's/^0//')" ]; then
   echo "ERROR: Month component must be unpadded (got $MONTH_PART, expected $(echo "$MONTH_PART" | sed 's/^0//'))"
   exit 1
 fi
-# Check for duplicate tag
+# Check for duplicate local tag
 if git tag -l "v$NEW_VERSION" | grep -q .; then
-  echo "ERROR: Tag v$NEW_VERSION already exists."
+  echo "ERROR: Local tag v$NEW_VERSION already exists."
+  exit 1
+fi
+# Check for duplicate remote tag (fail early before making any changes)
+if git ls-remote --tags origin "refs/tags/v$NEW_VERSION" | grep -q .; then
+  echo "ERROR: Remote tag v$NEW_VERSION already exists on origin."
   exit 1
 fi
 ```
@@ -257,7 +268,7 @@ git commit -m "docs: update changelog and security policy for v$NEW_VERSION"
 ### 4e. Bump Version
 
 ```bash
-npm version $NEW_VERSION --no-git-tag-version
+npm version "$NEW_VERSION" --no-git-tag-version
 git add package.json package-lock.json
 git commit -m "chore(release): bump version to v$NEW_VERSION"
 ```
