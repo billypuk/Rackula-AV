@@ -32,6 +32,10 @@ import { aristaDevices } from "./arista";
 import { juniperDevices } from "./juniper";
 import { vertivDevices } from "./vertiv";
 import { fsDevices } from "./fs";
+import { intelDevices } from "./intel";
+import { beelinkDevices } from "./beelink";
+import { raspberryPiDevices } from "./raspberry-pi";
+import { zimaDevices } from "./zima";
 
 export {
   ubiquitiDevices,
@@ -61,6 +65,10 @@ export {
   juniperDevices,
   vertivDevices,
   fsDevices,
+  intelDevices,
+  beelinkDevices,
+  raspberryPiDevices,
+  zimaDevices,
 };
 
 /**
@@ -271,6 +279,35 @@ export function getBrandPacks(): BrandSection[] {
       defaultExpanded: false,
       icon: "apple",
     },
+    // Mini PCs / SBCs
+    {
+      id: "intel",
+      title: "Intel",
+      devices: intelDevices,
+      defaultExpanded: false,
+      icon: "intel",
+    },
+    {
+      id: "beelink",
+      title: "Beelink",
+      devices: beelinkDevices,
+      defaultExpanded: false,
+      icon: "beelink",
+    },
+    {
+      id: "raspberry-pi",
+      title: "Raspberry Pi",
+      devices: raspberryPiDevices,
+      defaultExpanded: false,
+      icon: "raspberrypi",
+    },
+    {
+      id: "zima",
+      title: "Zima",
+      devices: zimaDevices,
+      defaultExpanded: false,
+      icon: "zima",
+    },
   ];
 }
 
@@ -331,6 +368,14 @@ export function getBrandDevices(brandId: string): DeviceType[] {
       return vertivDevices;
     case "fs":
       return fsDevices;
+    case "intel":
+      return intelDevices;
+    case "beelink":
+      return beelinkDevices;
+    case "raspberry-pi":
+      return raspberryPiDevices;
+    case "zima":
+      return zimaDevices;
     default:
       return [];
   }
@@ -368,6 +413,10 @@ export function getAllBrandDevices(): DeviceType[] {
     ...juniperDevices,
     ...vertivDevices,
     ...fsDevices,
+    ...intelDevices,
+    ...beelinkDevices,
+    ...raspberryPiDevices,
+    ...zimaDevices,
   ];
 }
 
