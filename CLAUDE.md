@@ -21,6 +21,10 @@ We use **Calendar Versioning (CalVer)** with the format `YY.M.MICRO`:
 - Same month as the latest tag → MICRO increments (`v26.6.0` → `v26.6.1`)
 - Different month → MICRO resets to 0 (`v26.6.2` → `v26.7.0`)
 
+**CalVer and milestones are decoupled:** the version reflects the ship date, not the plan
+date. Multiple milestones may ship in the same month. See the milestone cadence design:
+[`docs/superpowers/specs/2026-06-01-milestone-cadence-reframe-design.md`](docs/superpowers/specs/2026-06-01-milestone-cadence-reframe-design.md).
+
 **Dual-artifact policy:**
 
 - The Rackula **app** uses CalVer (`v26.6.0`)
@@ -50,9 +54,10 @@ from changelog entries. The release workflow will fail if no changelog entry exi
 
 **Current milestones:**
 
-- `M1 — LXC Build & Hardening` — Sprint 1 (~June 2026, v26.6.x)
-- `M2 — LXC Release & Stability` — Sprint 2 (~July 2026, v26.7.x)
-- `M3 — Data Format & Interop` — Sprint 3 (~Aug 2026, v26.8.x)
+- `M1 — LXC Build & Hardening` — complete
+- `M2 — LXC Release & Stability` — in progress
+- `M3 — Data Format & Interop` — next
+- `M4 — Type Safety, Decomposition & Stability` — planned
 
 ---
 
