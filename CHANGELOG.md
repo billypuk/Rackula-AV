@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
+## [26.6.0] - 2026-06-01
+
+### Added
+
+- Firewall device category (#1833, PR #1835)
+- Port type categorization for network, power, and console ports (#1836)
+- KWS 10-inch homelab rack brand pack, contributed by @ilanKushnir (#1837)
+- API write-route rate limiting for self-hosted deployments (#1778, PR #1828)
+- API explicit mutating-request origin policy (#1779, PR #1830)
+- Onboarding hint shown when a rack has no devices (#1827)
+- LXC release tarball now bundles the arm64 native binary (#1850, PR #1852)
+
+### Changed
+
+- Mini-PC devices moved from the Generic library into dedicated brand packs (#1840, PR #1844)
+- Milestone cadence reframed from monthly sprints to thematic groups
+- GitHub Projects integration aligned with the milestone cadence
+
+### Fixed
+
+- LXC update_script rollback hardening and install idempotency (#1851, PR #1854)
+- Device palette: chassis added to category order, drift-proofed against future omissions (#1839, PR #1849)
+- LXC notes format in rackula.json (#1213, PR #1831)
+
+### Security
+
+- Patched libxml2 CVE-2026-6732 by busting the apk-upgrade layer cache (#1841, PR #1843)
+
+### Technical
+
+- OIDC behind a reverse proxy documented and verified (#1832, PR #1845)
+- SELF-HOSTING.md moved from docs/guides/ to docs/deployment/ (#1819, PR #1829)
+- Replaced deprecated coderabbit --prompt-only flag with --agent (#1848)
+- Code quality findings addressed (#1821, #1822, #1823, #1824, #1825, #1826)
+
 ## [26.5.0] - 2026-05-29
 
 First CalVer release. Rackula has moved from SemVer (0.MINOR.PATCH) to Calendar Versioning (YY.M.MICRO). Future versions follow the format YY.M.MICRO where YY is the 2-digit year, M is the unpadded month, and MICRO is the release counter within that month (starting at 0).
