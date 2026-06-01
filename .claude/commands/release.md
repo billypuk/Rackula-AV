@@ -201,6 +201,16 @@ if ! NEW_VERSION=$(scripts/next-version.sh --dry-run); then
   echo "ERROR: Failed to compute next version. Check scripts/next-version.sh output."
   exit 1
 fi
+# Check for duplicate local tag
+if git tag -l "v$NEW_VERSION" | grep -q .; then
+  echo "ERROR: Local tag v$NEW_VERSION already exists."
+  exit 1
+fi
+# Check for duplicate remote tag (fail early before making any changes)
+if git ls-remote --tags origin "refs/tags/v$NEW_VERSION" | grep -q .; then
+  echo "ERROR: Remote tag v$NEW_VERSION already exists on origin."
+  exit 1
+fi
 ```
 
 **Explicit version:**
@@ -273,16 +283,7 @@ git add package.json package-lock.json
 git commit -m "chore(release): bump version to v$NEW_VERSION"
 ```
 
-### 4f. Verify Remote Tag Does Not Already Exist
-
-```bash
-if git ls-remote --tags origin "refs/tags/v$NEW_VERSION" | grep -q .; then
-  echo "Error: Tag v$NEW_VERSION already exists on origin."
-  exit 1
-fi
-```
-
-### 4g. Create Tag and Push
+### 4f. Create Tag and Push
 
 ```bash
 git tag "v$NEW_VERSION"
@@ -329,6 +330,17 @@ gh run watch
 | Invalid explicit version      | "Error: Version 'X' is not valid CalVer format (expected YY.M.MICRO, e.g., 26.6.0)." |
 | Zero-padded month             | "Error: Month must be unpadded (e.g., 26.6.0 not 26.06.0)."                          |
 | Push fails                    | "Error: Push failed. Check permissions and try again."                               |
+
+### Required Guard Implementation (Phase 4)
+
+```bash
+# Abort release if there are no releasable changes since last release.
+# CHANGE_LINES should be the collected commit/PR lines prepared in earlier phases.
+if [ -z "${CHANGE_LINES:-}" ]; then
+  echo "No changes found. Nothing to release."
+  exit 0
+fi
+```
 
 ---
 
