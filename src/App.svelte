@@ -59,8 +59,6 @@
     loadSavedLayout,
   } from "$lib/utils/persistence-api";
   import {
-    getSaveStatus,
-    setSaveStatus,
     maybeSave,
     maybeSaveAs,
     maybeExport,
@@ -92,7 +90,6 @@
   const placementStore = getPlacementStore();
 
   // Persistence state — delegated to persistence-manager module
-  let saveStatus = $derived(getSaveStatus());
 
   // Sidebar width: read once from the UI store.
   // This is intentionally NOT reactive because changes to sidebarWidth are driven
@@ -185,11 +182,6 @@
         error,
       );
       setApiAvailable(false);
-      if (hasEverConnectedToApi()) {
-        setSaveStatus("offline");
-      } else {
-        setSaveStatus("disabled");
-      }
       return false;
     });
 
@@ -228,8 +220,15 @@
     }
 
     const apiAvailable = await persistenceInitPromise;
-    if (!apiAvailable) {
-      setSaveStatus(hasEverConnectedToApi() ? "offline" : "disabled");
+    // initializePersistence() resolves to false for the common API-unavailable
+    // case (checkApiHealth returns false rather than rejecting), so the offline
+    // toast is shown here rather than only in the catch handler above.
+    if (!apiAvailable && hasEverConnectedToApi()) {
+      toastStore.showToast(
+        "Server unavailable — working offline",
+        "warning",
+        0,
+      );
     }
 
     // Priority 3: When API and local session are both available,
@@ -293,9 +292,11 @@
         // Treat server data failures as offline and fall back gracefully.
         setApiAvailable(false);
         if (hasEverConnectedToApi()) {
-          setSaveStatus("offline");
-        } else {
-          setSaveStatus("disabled");
+          toastStore.showToast(
+            "Server unavailable — working offline",
+            "warning",
+            0,
+          );
         }
       }
     }
@@ -564,7 +565,6 @@
       warnOnUnsavedChanges={uiStore.warnOnUnsavedChanges}
       promptCleanupOnSave={uiStore.promptCleanupOnSave}
       {partyMode}
-      {saveStatus}
       onsave={maybeSave}
       onsaveas={maybeSaveAs}
       onload={handleLoad}
