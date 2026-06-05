@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
+## [26.6.1] - 2026-06-05
+
+### Fixed
+
+- LXC install now installs the Bun runtime, so the API starts. v26.6.0 containers shipped without a JS runtime and the API service could not start (#1909, PR #1910)
+
+### Changed
+
+- LXC install and update scripts brought into community-scripts convention compliance: the update path uses fetch_and_deploy_gh_release instead of custom download logic, and custom SHA256 verification is removed from the scripts. The release still publishes a SHA256 asset; the scripts rely on the deploy helper and HTTPS (#1908, PR #1910)
+
 ## [26.6.0] - 2026-06-05
 
 You wanted LXC?! You GOT LXC. The Proxmox VE deployment is production-ready, baby:
