@@ -18,7 +18,7 @@ container. We made the container. It's the LXC release.
 - arm64 support: the release tarball bundles the arm64 native binary and the install advertises arm64 (#1850, PRs #1852 and #1906)
 - SHA256 verification for the release tarball (#1891, PR #1894)
 - update_script rollback hardening and install idempotency (#1851, PR #1854)
-- Hardened the release workflow against shell injection and split it into read-only build and write-only publish (#1897 PR #1898, #1899 PR #1900)
+- Hardened the release workflow against shell injection and split it into read-only build and write-only publish (#1897, PR #1898; #1899, PR #1900)
 - Corrected notes format in rackula.json (#1213, PR #1831)
 
 ### Added
