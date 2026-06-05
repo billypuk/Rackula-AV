@@ -5,10 +5,14 @@ name: Build LXC Tarball
 on:
   release:
     types: [published]
+  workflow_run:
+    workflows: ["Create Release"]
+    types: [completed]
+    branches: ["v*"]
   workflow_dispatch:
     inputs:
       version:
-        description: "Version tag (e.g. v0.8.0)"
+        description: "Version tag (e.g. v26.6.0)"
         required: true
 
 permissions:
@@ -17,6 +21,8 @@ permissions:
 jobs:
   build-lxc-tarball:
     runs-on: ubuntu-latest
+    # Only run if the triggering workflow succeeded (skip if release.yml was skipped/failed)
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -26,9 +32,21 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # Derive version from the triggering workflow's ref (tag name)
+            echo "version=${{ github.event.workflow_run.head_branch }}" >> "$GITHUB_OUTPUT"
           else
             echo "version=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! echo "$VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "ERROR: Version '$VERSION' does not match expected format vYY.M.MICRO (e.g. v26.6.0)"
+            exit 1
+          fi
+          echo "Version: $VERSION"
 
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
@@ -90,7 +108,19 @@ jobs:
           cp deploy/lxc/security-headers.conf "${TARBALL_DIR}/config/"
           cp deploy/lxc/nginx.service.d-override.conf "${TARBALL_DIR}/config/"
 
+          # Verify expected directories exist in the tarball
+          for dir in frontend api config; do
+            if [ ! -d "${TARBALL_DIR}/${dir}" ] || [ -z "$(ls -A "${TARBALL_DIR}/${dir}")" ]; then
+              echo "ERROR: Tarball directory '${dir}' is missing or empty"
+              exit 1
+            fi
+          done
+
           tar czf "rackula-lxc-${VERSION}.tar.gz" "${TARBALL_DIR}"
+
+          # Generate SHA256 checksum for integrity verification
+          sha256sum "rackula-lxc-${VERSION}.tar.gz" > "rackula-lxc-${VERSION}.tar.gz.sha256"
+
           rm -rf "${TARBALL_DIR}"
           echo "TARBALL=rackula-lxc-${VERSION}.tar.gz" >> "$GITHUB_ENV"
 
@@ -99,7 +129,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          if ! gh release view "$VERSION" &>/dev/null; then
-            gh release create "$VERSION" --draft --title "$VERSION (LXC test)"
+
+          # Verify the release exists and is published (not a draft)
+          IS_DRAFT=$(gh release view "$VERSION" --json isDraft --jq '.isDraft' 2>/dev/null || echo "missing")
+          if [ "$IS_DRAFT" = "missing" ]; then
+            echo "ERROR: Release $VERSION does not exist. Create it with release.yml first."
+            exit 1
           fi
-          gh release upload "$VERSION" "${TARBALL}" --clobber
+          if [ "$IS_DRAFT" = "true" ]; then
+            echo "ERROR: Release $VERSION is a draft. Publish it before uploading tarballs."
+            exit 1
+          fi
+
+          gh release upload "$VERSION" "${TARBALL}" "${TARBALL}.sha256" --clobber
+          echo "Uploaded ${TARBALL} and checksum to release $VERSION"

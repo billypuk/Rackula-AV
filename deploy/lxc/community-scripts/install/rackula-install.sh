@@ -16,25 +16,8 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   nginx \
-  unzip \
   curl
 msg_ok "Installed Dependencies"
-
-msg_info "Installing Bun"
-export BUN_INSTALL=/opt/bun
-curl -fsSL https://bun.sh/install | $STD bash
-if [ ! -f /opt/bun/bin/bun ]; then
-  msg_error "Bun installation failed — binary not found at /opt/bun/bin/bun"
-  exit 1
-fi
-ln -sf /opt/bun/bin/bun /usr/local/bin/bun
-if [ -f /opt/bun/bin/bunx ]; then
-  ln -sf /opt/bun/bin/bunx /usr/local/bin/bunx
-else
-  # bunx is typically bun with different argv[0]; fall back to symlink via bun
-  ln -sf /usr/local/bin/bun /usr/local/bin/bunx
-fi
-msg_ok "Installed Bun"
 
 msg_info "Creating rackula user"
 if ! id -u rackula >/dev/null 2>&1; then
