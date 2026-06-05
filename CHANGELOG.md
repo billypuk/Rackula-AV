@@ -5,40 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Calendar Versioning](https://calver.org/).
 
-## [26.6.0] - 2026-06-01
+## [26.6.0] - 2026-06-05
+
+You wanted LXC?! You GOT LXC. The Proxmox VE deployment is production-ready, baby:
+Rackula installs as one self-contained Debian 13 container, web frontend and persistence
+API riding together, now on arm64 AND x86-64, with a SHA256-verified tarball because we
+are not handing you an unverified tarball like some kind of clown. You asked for the
+container. We made the container. It's the LXC release.
+
+### LXC deployment
+
+- arm64 support: the release tarball bundles the arm64 native binary and the install advertises arm64 (#1850, PRs #1852 and #1906)
+- SHA256 verification for the release tarball (#1891, PR #1894)
+- update_script rollback hardening and install idempotency (#1851, PR #1854)
+- Hardened the release workflow against shell injection and split it into read-only build and write-only publish (#1897 PR #1898, #1899 PR #1900)
+- Corrected notes format in rackula.json (#1213, PR #1831)
 
 ### Added
 
 - Firewall device category (#1833, PR #1835)
 - Port type categorization for network, power, and console ports (#1836)
 - KWS 10-inch homelab rack brand pack, contributed by @ilanKushnir (#1837)
+- Onboarding hint shown when a rack has no devices (#1827)
+- Haptic feedback on touch selection, with a thicker selection outline on mobile (#1883)
+- Rack height slider in the new-rack wizards (#756, PR #1865)
 - API write-route rate limiting for self-hosted deployments (#1778, PR #1828)
 - API explicit mutating-request origin policy (#1779, PR #1830)
-- Onboarding hint shown when a rack has no devices (#1827)
-- LXC release tarball now bundles the arm64 native binary (#1850, PR #1852)
+- API storage abuse guardrails: per-layout quota and retention (#1780, PR #1875)
 
 ### Changed
 
+- Save confirmation moved from the toolbar indicator to a toast, removing the toolbar layout shift (#1901, PR #1903)
+- Storage quota rejections surfaced with clear, actionable messaging (#1390, PR #1893)
 - Mini-PC devices moved from the Generic library into dedicated brand packs (#1840, PR #1844)
-- Milestone cadence reframed from monthly sprints to thematic groups
-- GitHub Projects integration aligned with the milestone cadence
+- API adopts pino structured logging with levels (#1888, PR #1892)
 
 ### Fixed
 
-- LXC update_script rollback hardening and install idempotency (#1851, PR #1854)
+- Device placement images now render in exports, matching the editor (#1902, PR #1905)
+- Auto-import undo no longer removes shared device types (#1479, PR #1859)
 - Device palette: chassis added to category order, drift-proofed against future omissions (#1839, PR #1849)
-- LXC notes format in rackula.json (#1213, PR #1831)
 
 ### Security
 
 - Patched libxml2 CVE-2026-6732 by busting the apk-upgrade layer cache (#1841, PR #1843)
+- Dependency security updates: better-auth and dompurify (#1885, #1879)
 
 ### Technical
 
 - OIDC behind a reverse proxy documented and verified (#1832, PR #1845)
-- SELF-HOSTING.md moved from docs/guides/ to docs/deployment/ (#1819, PR #1829)
-- Replaced deprecated coderabbit --prompt-only flag with --agent (#1848)
-- Code quality findings addressed (#1821, #1822, #1823, #1824, #1825, #1826)
+- arm64 native-dependency load verified on a native arm64 CI runner (#1850, PR #1906)
+- Automatic per-release contributor acknowledgements (#1876, PR #1889)
 
 ## [26.5.0] - 2026-05-29
 
