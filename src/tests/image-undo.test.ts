@@ -9,9 +9,15 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { getImageStore, resetImageStore } from "$lib/stores/images.svelte";
-import { createRemoveDeviceCommand } from "$lib/stores/commands/device";
+import {
+  createRemoveDeviceCommand,
+  createCrossRackMoveCommand,
+} from "$lib/stores/commands/device";
 import { createDeleteDeviceTypeCommand } from "$lib/stores/commands/device-type";
-import type { DeviceCommandStore } from "$lib/stores/commands/device";
+import type {
+  DeviceCommandStore,
+  CrossRackMoveStore,
+} from "$lib/stores/commands/device";
 import type { DeviceTypeCommandStore } from "$lib/stores/commands/device-type";
 import { createTestDevice, createTestDeviceType } from "./factories";
 import type { PlacedDevice, DeviceType } from "$lib/types";
@@ -267,5 +273,217 @@ describe("Image Undo — Device Type Deletion", () => {
 
     cmd.execute();
     expect(() => cmd.undo()).not.toThrow();
+  });
+});
+
+describe("Image Undo — Cross-Rack Move (#1478)", () => {
+  beforeEach(() => {
+    resetImageStore();
+  });
+
+  it("placement image follows device when cross-rack move remaps the device ID", () => {
+    const imageStore = getImageStore();
+    const device = createTestDevice({
+      id: "parent-1",
+      device_type: "test-server",
+    });
+
+    // Source rack starts with the device; target rack already has a device with the same UUID.
+    // This forces the dedup guard in placeDeviceRaw to assign a new ID on execute.
+    const sourceDevices: PlacedDevice[] = [{ ...device }];
+    const targetConflict = createTestDevice({
+      id: "parent-1",
+      device_type: "other-server",
+    });
+    const targetDevices: PlacedDevice[] = [{ ...targetConflict }];
+    const remappedId = "parent-1-remapped";
+    let activeRack = "source";
+
+    const store: CrossRackMoveStore = {
+      setActiveRackId(id) {
+        activeRack = id ?? "source";
+      },
+      getActiveRackId() {
+        return activeRack;
+      },
+      placeDeviceRaw(d: PlacedDevice) {
+        if (activeRack === "target") {
+          // Simulate dedup: remap if the ID already exists in target
+          const conflict = targetDevices.some((x) => x.id === d.id);
+          const placed = conflict ? { ...d, id: remappedId } : d;
+          targetDevices.push(placed);
+          return targetDevices.length - 1;
+        }
+        sourceDevices.push(d);
+        return sourceDevices.length - 1;
+      },
+      removeDeviceAtIndexRaw(index: number) {
+        const arr = activeRack === "target" ? targetDevices : sourceDevices;
+        const removed = arr[index];
+        arr.splice(index, 1);
+        return removed;
+      },
+      getDeviceAtIndex(index: number) {
+        return activeRack === "target"
+          ? targetDevices[index]
+          : sourceDevices[index];
+      },
+      moveDeviceRaw() {
+        return true;
+      },
+      updateDeviceFaceRaw() {},
+      updateDeviceNameRaw() {},
+      updateDevicePlacementImageRaw() {},
+      updateDeviceColourRaw() {},
+      updateDeviceSlotPositionRaw() {},
+      updateDeviceNotesRaw() {},
+      updateDeviceIpRaw() {},
+    };
+
+    imageStore.setDeviceImage(
+      "placement-parent-1",
+      "front",
+      createMockImageData("server-front.png"),
+    );
+
+    const cmd = createCrossRackMoveCommand(
+      "source",
+      [0],
+      "target",
+      1,
+      "front",
+      undefined,
+      device,
+      [],
+      store,
+    );
+
+    cmd.execute();
+    // After execute: device is in target with remapped ID; image must follow
+    expect(imageStore.hasImage("placement-parent-1", "front")).toBe(false);
+    expect(imageStore.hasImage(`placement-${remappedId}`, "front")).toBe(true);
+
+    cmd.undo();
+    // After undo: device is back in source with original ID; image must follow back
+    expect(imageStore.hasImage(`placement-${remappedId}`, "front")).toBe(false);
+    expect(imageStore.hasImage("placement-parent-1", "front")).toBe(true);
+    expect(
+      imageStore.getDeviceImage("placement-parent-1", "front")?.filename,
+    ).toBe("server-front.png");
+  });
+
+  it("placement images follow child devices when cross-rack move remaps child IDs", () => {
+    const imageStore = getImageStore();
+    const parent = createTestDevice({
+      id: "parent-chassis",
+      device_type: "chassis",
+    });
+    const child1 = createTestDevice({ id: "child-1", device_type: "blade" });
+    const child2 = createTestDevice({ id: "child-2", device_type: "blade" });
+
+    const sourceDevices: PlacedDevice[] = [
+      { ...parent },
+      { ...child1 },
+      { ...child2 },
+    ];
+    // Target rack already has devices with the same child UUIDs — triggers dedup on children
+    const targetDevices: PlacedDevice[] = [
+      createTestDevice({ id: "child-1", device_type: "other" }),
+      createTestDevice({ id: "child-2", device_type: "other" }),
+    ];
+    const remappedChild1 = "child-1-remapped";
+    const remappedChild2 = "child-2-remapped";
+    let activeRack = "source";
+
+    const store: CrossRackMoveStore = {
+      setActiveRackId(id) {
+        activeRack = id ?? "source";
+      },
+      getActiveRackId() {
+        return activeRack;
+      },
+      placeDeviceRaw(d: PlacedDevice) {
+        if (activeRack === "target") {
+          const conflict = targetDevices.some((x) => x.id === d.id);
+          const remap: Record<string, string> = {
+            "child-1": remappedChild1,
+            "child-2": remappedChild2,
+          };
+          const placed = conflict
+            ? { ...d, id: remap[d.id] ?? `${d.id}-r` }
+            : d;
+          targetDevices.push(placed);
+          return targetDevices.length - 1;
+        }
+        sourceDevices.push(d);
+        return sourceDevices.length - 1;
+      },
+      removeDeviceAtIndexRaw(index: number) {
+        const arr = activeRack === "target" ? targetDevices : sourceDevices;
+        const removed = arr[index];
+        arr.splice(index, 1);
+        return removed;
+      },
+      getDeviceAtIndex(index: number) {
+        return activeRack === "target"
+          ? targetDevices[index]
+          : sourceDevices[index];
+      },
+      moveDeviceRaw() {
+        return true;
+      },
+      updateDeviceFaceRaw() {},
+      updateDeviceNameRaw() {},
+      updateDevicePlacementImageRaw() {},
+      updateDeviceColourRaw() {},
+      updateDeviceSlotPositionRaw() {},
+      updateDeviceNotesRaw() {},
+      updateDeviceIpRaw() {},
+    };
+
+    imageStore.setDeviceImage(
+      "placement-child-1",
+      "front",
+      createMockImageData("child-1-front.png"),
+    );
+    imageStore.setDeviceImage(
+      "placement-child-2",
+      "rear",
+      createMockImageData("child-2-rear.png"),
+    );
+
+    const cmd = createCrossRackMoveCommand(
+      "source",
+      [0, 1, 2],
+      "target",
+      1,
+      "front",
+      undefined,
+      parent,
+      [child1, child2],
+      store,
+    );
+
+    cmd.execute();
+    // Child images must follow their remapped IDs
+    expect(imageStore.hasImage("placement-child-1", "front")).toBe(false);
+    expect(imageStore.hasImage(`placement-${remappedChild1}`, "front")).toBe(
+      true,
+    );
+    expect(imageStore.hasImage("placement-child-2", "rear")).toBe(false);
+    expect(imageStore.hasImage(`placement-${remappedChild2}`, "rear")).toBe(
+      true,
+    );
+
+    cmd.undo();
+    // After undo: child images return to original keys
+    expect(imageStore.hasImage(`placement-${remappedChild1}`, "front")).toBe(
+      false,
+    );
+    expect(imageStore.hasImage("placement-child-1", "front")).toBe(true);
+    expect(imageStore.hasImage(`placement-${remappedChild2}`, "rear")).toBe(
+      false,
+    );
+    expect(imageStore.hasImage("placement-child-2", "rear")).toBe(true);
   });
 });
