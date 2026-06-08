@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: gVNS
+# Author: gVNS (ggfevans)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/RackulaLives/Rackula
 
@@ -32,13 +32,19 @@ function update_script() {
 
   if check_for_gh_release "rackula" "RackulaLives/Rackula"; then
     msg_info "Stopping Services"
-    systemctl stop rackula-api
-    systemctl stop nginx
+    systemctl stop rackula-api nginx
     msg_ok "Stopped Services"
 
     msg_info "Backing up Data"
+    if [[ -d /opt/rackula_data_backup && ! -d /opt/rackula/data ]]; then
+      mv /opt/rackula_data_backup /opt/rackula/data
+    fi
     rm -rf /opt/rackula_data_backup
-    cp -r /opt/rackula/data /opt/rackula_data_backup
+    cp -r /opt/rackula/data /opt/rackula_data_backup || {
+      msg_error "Data backup failed; aborting before any changes"
+      systemctl start nginx rackula-api || true
+      exit 1
+    }
     msg_ok "Backed up Data"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rackula" "RackulaLives/Rackula" "prebuild" "latest" "/opt/rackula" "rackula-lxc-*.tar.gz"
@@ -57,25 +63,28 @@ function update_script() {
     chown -R root:root /opt/rackula/frontend
     find /opt/rackula/frontend -type d -exec chmod 755 {} \;
     find /opt/rackula/frontend -type f -exec chmod 644 {} \;
-    chown -R rackula:rackula /opt/rackula/api
-    chown -R rackula:rackula /opt/rackula/data
+    chown -R rackula:rackula /opt/rackula/{api,data}
     chmod 750 /opt/rackula/data
     systemctl daemon-reload
     msg_ok "Updated Configuration"
 
     msg_info "Starting Services"
-    systemctl start rackula-api
-    systemctl start nginx
+    if ! nginx -t >/dev/null 2>&1; then
+      msg_error "nginx configuration test failed (run 'nginx -t' for details)"
+      systemctl start nginx rackula-api || true
+      exit 1
+    fi
+    systemctl start nginx rackula-api
     msg_ok "Started Services"
 
     msg_info "Verifying Services"
     for i in $(seq 1 10); do
-      if curl -sf --connect-timeout 2 --max-time 5 http://127.0.0.1:3001/health >/dev/null 2>&1; then
+      if curl -sf --connect-timeout 2 --max-time 5 http://127.0.0.1/api/health >/dev/null 2>&1; then
         msg_ok "Service running successfully"
         break
       fi
       if [ "$i" -eq 10 ]; then
-        msg_error "API failed to start within 10 seconds"
+        msg_error "Service failed to respond on http://127.0.0.1/api/health within 10 seconds"
         exit 1
       fi
       sleep 1
