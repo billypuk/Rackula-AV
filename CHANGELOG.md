@@ -7,9 +7,33 @@ and this project adheres to [Calendar Versioning](https://calver.org/).
 
 ## [26.6.3] - 2026-06-08
 
-Patch release shipping the unprivileged-LXC fix. v26.6.2 predated #1961 so a fresh install
-on an unprivileged container (the default in community-scripts) would fail at service start.
-This release also removes Umami analytics and fixes several smaller UI and LXC issues.
+For a while, the way Rackula got released was: someone pushed a tag and hoped. Nobody deployed
+the LXC install on an actual container first. They just believed in it. That is how v26.6.2
+shipped an install that could not start on an unprivileged container, which is the default. We
+found the guy who did that. It was me. @ggfevans.
+
+So now a release does not ship until it proves it works. Every release goes through a gate: it
+builds the images, brings them up under Docker and confirms they are healthy, then installs the
+real thing onto a throwaway Proxmox container and smoke-tests it. If any of that fails, nothing
+gets promoted and the last good release stays exactly where it is. Nobody pushes to prod and
+hopes anymore. Not even @ggfevans. Especially not @ggfevans.
+
+And it is only getting stricter. End-to-end browser testing is in the works, so before long a
+release will have to survive being clicked through by a robot before it is allowed out. The
+walls are closing in. On @ggfevans.
+
+There was also a thing watching how you used the app. Umami. Counting things. It is gone now:
+out of the code, out of the deploy config, out of the docs. Nobody is keeping track of you in
+here. It is just you and the rack.
+
+### Changed
+
+- Release pipeline is now gated: stage as a prerelease, validate on real targets (Docker compose health plus an LXC smoke test on a throwaway unprivileged container), and promote only if every gate passes. A failed gate promotes nothing, so `:latest` and prod always point at the last known-good release (#1977)
+
+### Added
+
+- Release-free dev build mode for LXC payloads, so the install can be tested without cutting a release (#1959)
+- Reusable LXC smoke-test with a Proxmox API driver, used by the release gate to deploy and verify on a real container (#1967, #1982)
 
 ### Fixed
 
@@ -23,7 +47,7 @@ This release also removes Umami analytics and fixes several smaller UI and LXC i
 
 ### Removed
 
-- Umami analytics removed from source code, deployment config, and documentation (#1972, #1973, #1975; PRs #1978, #1979, #1981)
+- Umami analytics removed entirely from source code, deployment config, and documentation. No client-side analytics ship with Rackula anymore (#1972, #1973, #1975; PRs #1978, #1979, #1981)
 
 ## [26.6.2] - 2026-06-05
 
