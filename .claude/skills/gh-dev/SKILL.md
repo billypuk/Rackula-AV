@@ -66,7 +66,8 @@ gh issue edit <N> --remove-label "in-progress"
 **MANDATORY:** Always create a worktree for issue work. Never work directly on main.
 
 ```bash
-git worktree add .worktree/${REPO_NAME}-issue-<N> -b <type>/<N>-<desc> origin/main
+BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+git worktree add .worktree/${REPO_NAME}-issue-<N> -b <type>/<N>-<desc> origin/${BASE_BRANCH}
 WORKTREE_DIR="$(pwd)/.worktree/${REPO_NAME}-issue-<N>"
 ```
 
@@ -77,14 +78,12 @@ Use `WORKTREE_DIR` variable and subshells `(cd "$WORKTREE_DIR" && ...)` for all 
 ## Branch Checkout Rules
 
 **NEVER in main directory:**
-
 ```bash
 git checkout <branch>      # Changes branch for ALL agents
 git switch <branch>        # Same problem
 ```
 
 **ALWAYS use worktrees:**
-
 ```bash
 git worktree add .worktree/${REPO_NAME}-issue-<N> -b <type>/<N>-<desc>
 ```
@@ -125,17 +124,23 @@ START
                          Run verification
                                │
                                ▼
-                    ┌──── CodeRabbit Review ◀───┐
+                    ┌──── /code-review ◀────────┐
                     │          │                │
-                    │    Issues found?          │
+                    │    Findings?              │
                     │     yes      no           │
                     │      │       │            │
                     │      ▼       ▼            │
                     │   Fix all  Commit ────────┘
-                    │   issues     │
+                    │   findings   │
                     │      │       ▼
-                    └──────┘   Create PR
-                               │
+                    └──────┘   Push (pre-push
+                               CodeRabbit --agent
+                               gate; --no-verify
+                               only if transient)
+                                   │
+                                   ▼
+                               Create PR
+                                   │
                     ┌──────────┴──────────┐
                     ▼                     ▼
                  Success              Blocked
@@ -160,8 +165,10 @@ START
 ```bash
 CURRENT=$(git branch --show-current)
 if [ "$CURRENT" != "main" ] && [ "$CURRENT" != "master" ]; then
-  echo "WARNING: Main directory on branch: $CURRENT"
-  git checkout main || git checkout master
+  echo "ABORT: Shared checkout is on '$CURRENT', not main/master."
+  echo "Do NOT switch branches here; other worktrees/agents may depend on it."
+  echo "Restore it manually, then re-run."
+  exit 1
 fi
 ```
 
@@ -194,11 +201,11 @@ gh issue view <N> --json number,title,body,labels,assignees
 
 ### 2b. Complexity Assessment
 
-| Criteria       | Simple       | Complex                |
-| -------------- | ------------ | ---------------------- |
-| Size label     | `size:small` | `size:medium+`         |
-| Files affected | ≤3           | >3                     |
-| Type           | Bug fix      | Feature, architectural |
+| Criteria | Simple | Complex |
+|----------|--------|---------|
+| Size label | `size:small` | `size:medium+` |
+| Files affected | ≤3 | >3 |
+| Type | Bug fix | Feature, architectural |
 
 **Simple:** Proceed to Phase 3.
 **Complex:** Use Plan agent first.
@@ -230,84 +237,101 @@ Check CLAUDE.md for `### Verification Commands`. If found, run them:
 
 If not configured, skip or ask user.
 
-### 3d. CodeRabbit Review Loop
+### 3d. Local Code Review (before PR)
 
-**MANDATORY:** Run CodeRabbit review before committing. Address ALL feedback before proceeding.
+**MANDATORY before opening a PR.** Review the diff and resolve findings before pushing.
+
+**Do NOT run the CodeRabbit CLI here.** Repos that gate on CodeRabbit run it at push
+time via a pre-push hook in agent mode (see 3f). Running it manually first doubles the work.
 
 ```
 ┌─────────────────────────────────────────┐
-│          CODERABBIT REVIEW LOOP         │
+│            CODE REVIEW LOOP             │
 ├─────────────────────────────────────────┤
 │                                         │
-│  1. Run coderabbit review               │
+│  1. Run /code-review (or fallback)      │
 │         │                               │
 │         ▼                               │
-│  2. Issues found? ──no──▶ Proceed to    │
-│         │                   commit      │
+│  2. Findings? ──no──▶ Proceed to commit │
+│         │                               │
 │        yes                              │
+│         ▼                               │
+│  3. Fix each finding                    │
 │         │                               │
 │         ▼                               │
-│  3. Create tasks from feedback          │
-│         │                               │
-│         ▼                               │
-│  4. Implement fixes                     │
-│         │                               │
-│         ▼                               │
-│  5. Re-run verification commands        │
+│  4. Re-run verification commands        │
 │         │                               │
 │         └────────▶ Back to step 1       │
 │                                         │
 └─────────────────────────────────────────┘
 ```
 
-**Step 1: Run CodeRabbit**
+**Step 1: Run the review (auto-detect)**
 
-```bash
-(cd "$WORKTREE_DIR" && coderabbit --agent --type uncommitted 2>&1)
-```
+- **Preferred:** if a `/code-review` command is available in this environment, use it.
+  It reviews the current diff for correctness bugs plus reuse/simplification/efficiency
+  cleanups.
+- **Fallback:** if `/code-review` is unavailable, use the repo's configured reviewer
+  (check CLAUDE.md `### Review Command`). If none, self-review the diff against the
+  issue's acceptance criteria.
 
-**Step 2: Parse Output**
+**Step 2: Fix findings**
 
-CodeRabbit returns structured feedback with:
+Address each finding. For multiple findings, track them as tasks and mark completed as
+you go.
 
-- `File:` - affected file path
-- `Line:` - line range
-- `Type:` - issue type (potential_issue, nitpick, etc.)
-- `Prompt for AI Agent:` - description of what to fix
+**Step 3: Re-verify**
 
-**Step 3: Create Tasks**
-
-For each issue found, create a task with:
-
-- Subject: Brief description from the prompt
-- Description: Full CodeRabbit feedback including file/line
-
-**Step 4: Implement Fixes**
-
-Address each task in order. Mark completed as you go.
-
-**Step 5: Re-verify**
-
-After fixing all issues:
-
-1. Run verification commands again (lint, test, build)
-2. Run coderabbit again to confirm fixes
-3. Only proceed when coderabbit returns no issues
+After fixing, re-run verification commands (lint, test, build), then re-review. Only
+proceed when the review is clean.
 
 **Exit Conditions:**
+- **Success:** review returns no findings → proceed to commit
+- **Max iterations (3):** if findings persist after 3 cycles, ask the user whether to
+  proceed or abort
 
-- **Success:** CodeRabbit returns "Review completed" with no issues → proceed to commit
-- **Max iterations (3):** If issues persist after 3 cycles, ask user whether to proceed or abort
-
-### 3e. Commit and Push
+### 3e. Commit
 
 ```bash
 (cd "$WORKTREE_DIR" && git add -A && git commit -m "<type>: <desc>
 
-Fixes #<N>" && git push -u origin <branch>)
+Fixes #<N>")
 ```
 
-### 3f. Create PR
+### 3f. Push (mind the pre-push gate)
+
+```bash
+(cd "$WORKTREE_DIR" && git push -u origin <branch>)
+```
+
+Some repos run a **pre-push hook** that gates the push on a CodeRabbit review.
+Detect a *CodeRabbit* gate specifically (not just any pre-push hook):
+
+```bash
+HOOK_FILE=""
+[ -f .husky/pre-push ] && HOOK_FILE=".husky/pre-push"
+[ -f .git/hooks/pre-push ] && HOOK_FILE=".git/hooks/pre-push"
+if [ -n "$HOOK_FILE" ] && grep -qi "coderabbit" "$HOOK_FILE"; then
+  echo "CodeRabbit pre-push gate detected"
+fi
+```
+
+When present, the hook runs **CodeRabbit in agent mode**
+(`coderabbit review --agent`, default-deny) and blocks the push on real findings.
+The `--no-verify` fallback below applies **only to a CodeRabbit gate**. If a hook
+runs other checks (tests, lint), do not bypass them blindly.
+
+**If the push is blocked, classify the cause:**
+
+| Cause | What to do |
+|-------|-----------|
+| Real review findings reported | Address them (loop back to 3d), then push again. |
+| Timeout, CLI unavailable, or unparseable output (infra failure, not findings) | Retry once with `git push --no-verify` to bypass the gate. |
+
+Only use `--no-verify` for transient/infrastructure failures. **Never** bypass to skip
+real findings.
+
+### 3g. Create PR
 
 ```bash
 (cd "$WORKTREE_DIR" && gh pr create \
@@ -321,21 +345,20 @@ Fixes #<N>" && git push -u origin <branch>)
 Closes #<N>")
 ```
 
-### 3g. Merge
+### 3h. Merge
 
 ```bash
 gh pr checks <PR> --watch
 gh pr merge <PR> --squash --delete-branch --auto
 ```
 
-### 3h. Cleanup
+### 3i. Cleanup
 
 ```bash
 # Release lock if label exists
 gh issue edit <N> --remove-label "in-progress" 2>/dev/null || true
 
-# Return to main, clean worktree
-git checkout main || git checkout master
+# Refresh main (shared checkout is already on main) and clean worktree
 git pull
 git worktree remove .worktree/${REPO_NAME}-issue-<N>
 git worktree prune
@@ -358,7 +381,7 @@ Check for more issues:
 
 ## Blocker Handling
 
-1. Commit WIP: `git commit -m "wip: partial #<N>" --no-verify && git push`
+1. Commit WIP: `git commit -m "wip: partial #<N>" --no-verify && git push --no-verify` (parking incomplete work; the review gate would block it)
 2. Release lock: `gh issue edit <N> --remove-label "in-progress"`
 3. Comment on issue with status, blocker, what was attempted
 4. Stop
@@ -373,14 +396,11 @@ If project has `## GitHub Workflow` section, read for:
 
 ````markdown
 ### Verification Commands
-
 ```bash
 npm run lint
 npm run test:run
 npm run build
 ```
-````
-
 ````
 
 ### Branch Prefixes
@@ -390,15 +410,25 @@ npm run build
 - Bug: fix/
 - Feature: feat/
 - Chore: chore/
-````
+```
 
 ### Worktree Pattern
 
 ```markdown
 ### Worktree Pattern
-
 .worktree/<custom>-issue-<N>
 ```
+
+### Review Command
+
+Used by step 3d when `/code-review` is unavailable in the environment.
+
+````markdown
+### Review Command
+```bash
+<repo-specific local review command>
+```
+````
 
 ---
 
@@ -416,7 +446,6 @@ npm run build
 **Summary:** <what was done>
 
 **Files Changed:**
-
 - `file.ts`: <change>
 ```
 
@@ -429,10 +458,8 @@ npm run build
 **Blocked:** M issues
 
 **Completed:**
-
 1. #42: Title - PR #123
 
 **Blocked:**
-
 1. #44: Title - <reason>
 ```
