@@ -44,6 +44,7 @@
     applyReconcile,
     uploadSnapshot,
     setServerBaseUpdatedAt,
+    resolveBrowserLaunch,
   } from "$lib/storage";
   import { serializeLayoutToYaml } from "$lib/utils/yaml";
   import {
@@ -295,21 +296,33 @@
       }
     }
 
-    // Get localStorage session data (with timestamp and stored mode if available)
-    const localSession = loadSessionWithTimestamp();
-
-    // Browser mode: no server compare. Restore the working copy if present,
-    // otherwise open straight to the canvas empty state. Surface a server->browser
-    // flip notice when the saved copy came from a server deployment (never silently
-    // degrade), else a one-time first-run notice. No offline toasts ever in browser
-    // mode. Entry actions (new/open/import) live in the sidebar and app menu.
+    // Browser mode: no server compare. Lazily restore the previously open tab
+    // set from the multi-layout workspace (#2080), hydrating the active tab now
+    // and the rest on first focus. With no persisted workspace, open straight to
+    // the canvas empty state. Surface a server->browser flip notice when the
+    // restored copy came from a server deployment (never silently degrade), else
+    // a one-time first-run notice. No offline toasts ever in browser mode. Entry
+    // actions (new/open/import) live in the sidebar and app menu.
     if (!serverMode) {
-      if (!localSession) {
+      const launch = resolveBrowserLaunch();
+      if (launch.action === "empty") {
         layoutStore.resetLayout();
-        maybeShowFirstRunNotice();
+        // First-run notice is for genuine fresh installs. A returning user whose
+        // workspace is empty (data lost or wiped) must not be told this is their
+        // first time here. #2095/#2018 own the lost-data recovery state.
+        if (!launch.everHadLayouts) {
+          maybeShowFirstRunNotice();
+        }
         return;
       }
-      if (detectModeFlip(localSession.storageMode) === "server-to-browser") {
+
+      const activeEntry = launch.index.activeId
+        ? launch.index.library[launch.index.activeId]
+        : undefined;
+      if (
+        activeEntry &&
+        detectModeFlip(activeEntry.storageMode) === "server-to-browser"
+      ) {
         showStorageToast(
           "This deployment now stores layouts in your browser; your previous server library is not loaded here.",
           "warning",
@@ -318,11 +331,25 @@
       } else {
         maybeShowFirstRunNotice();
       }
-      restoreLocalSession(localSession);
+
+      // restoreWorkspace hydrates the active tab and restores its durability
+      // (dirty by autosave convention, not explicitly saved).
+      workspaceStore.restoreWorkspace({
+        index: launch.index,
+        loadBody: launch.loadBody,
+      });
+      requestAnimationFrame(() => {
+        if (!canvasStore.restoreViewport()) {
+          canvasStore.fitAll(layoutStore.racks, layoutStore.rack_groups);
+        }
+      });
       return;
     }
 
     // Server mode below.
+
+    // Get localStorage session data (with timestamp and stored mode if available)
+    const localSession = loadSessionWithTimestamp();
 
     // No local session: open straight to the canvas empty state. The server
     // library is reachable through the sidebar Layouts tab and the app menu;
