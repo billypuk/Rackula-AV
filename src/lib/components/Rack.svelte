@@ -434,9 +434,7 @@
     ondragover={(e) => onDragOver(e, handlerCtx)}
     ondragenter={onDragEnter}
     ondragleave={(e) => onDragLeave(e, handlerCtx)}
-    ondrop={(e) => {
-      onDrop(e, handlerCtx);
-    }}
+    ondrop={(e) => onDrop(e, handlerCtx)}
     ontouchend={(e) => {
       if (!viewportStore.isMobile || !placementStore.isPlacing) return;
       // Don't place when a pan gesture just ended over the rack.
@@ -507,11 +505,9 @@
               ? (containerHoverInfo?.targetSlotId ?? null)
               : null}
             isDragTargetValid={isHoveredContainer &&
-              containerHoverInfo?.isValidTarget === true}
+              (containerHoverInfo?.isValidTarget ?? false)}
             onselect={ondeviceselect}
-            ondragend={() => {
-              setDragFinished();
-            }}
+            ondragend={() => setDragFinished()}
             onduplicate={(e) =>
               contextActions.handleDuplicate(rack, { ...e.detail, x: 0, y: 0 })}
             oncontextmenuopen={ctxMenu.handleOpen}
