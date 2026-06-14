@@ -72,6 +72,7 @@
   import { getLayoutStore } from "$lib/stores/layout.svelte";
   import { getWorkspaceStore } from "$lib/stores/workspace.svelte";
   import { createLayout } from "$lib/utils/serialization";
+  import type { StarterTemplate } from "$lib/templates/starter-templates";
   import { getSelectionStore } from "$lib/stores/selection.svelte";
   import { getUIStore } from "$lib/stores/ui.svelte";
   import { getCanvasStore } from "$lib/stores/canvas.svelte";
@@ -493,6 +494,19 @@
     dialogStore.open("newRack");
   }
 
+  // Load a starter template chosen from the empty-state picker (#2095) into the
+  // current layout. loadLayout gives it normal undo and storage semantics;
+  // markClean marks the fresh template as an unmodified starting point, matching
+  // the shared-layout load path. fitAll then centres it so the user sees the
+  // whole rack immediately.
+  function handleChooseTemplate(template: StarterTemplate) {
+    layoutStore.loadLayout(template.layout);
+    layoutStore.markClean();
+    requestAnimationFrame(() => {
+      canvasStore.fitAll(layoutStore.racks, layoutStore.rack_groups);
+    });
+  }
+
   function handleLayoutExport(tabId: string) {
     workspaceStore.switchTo(tabId);
     maybeExport();
@@ -629,6 +643,8 @@
               <Canvas
                 onnewrack={handleNewRack}
                 onload={handleLoad}
+                onchoosetemplate={handleChooseTemplate}
+                onshare={handleShare}
                 onfitall={handleFitAll}
                 onresetzoom={() => canvasStore.resetZoom()}
                 {partyMode}
@@ -656,6 +672,8 @@
         <Canvas
           onnewrack={handleNewRack}
           onload={handleLoad}
+          onchoosetemplate={handleChooseTemplate}
+          onshare={handleShare}
           onfitall={handleFitAll}
           onresetzoom={() => canvasStore.resetZoom()}
           {partyMode}
