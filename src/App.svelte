@@ -611,7 +611,10 @@
               onchange={(tab) => uiStore.setSidebarTab(tab)}
             />
             {#if uiStore.sidebarTab === "devices"}
-              <DevicePalette oncreatedevice={handleAddDevice} />
+              <DevicePalette
+                oncreatedevice={handleAddDevice}
+                ontoggledisplaymode={handleToggleDisplayMode}
+              />
             {:else if uiStore.sidebarTab === "racks"}
               <RackList
                 onnewrack={handleNewRack}
