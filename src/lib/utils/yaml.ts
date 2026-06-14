@@ -248,6 +248,51 @@ function orderMetadataFields(
 }
 
 /**
+ * Top-level keys the serializer writes explicitly above. Any other top-level key
+ * (an unknown additive section from a newer schema, or a recognised-but-not-yet-
+ * serialised field such as `connections`) is round-tripped by appendUnknownSections
+ * so it is never silently dropped on save (#2208). `connections` is deliberately
+ * NOT listed: neither serializer writes it yet, so excluding it lets the fallback
+ * preserve it until explicit serialization exists.
+ */
+const KNOWN_TOP_LEVEL_KEYS = new Set<string>([
+  "metadata",
+  "version",
+  "name",
+  "racks",
+  "rack",
+  "rack_groups",
+  "device_types",
+  "settings",
+  "cables",
+]);
+
+/**
+ * Reserved keys that must never be copied from untrusted parsed YAML onto a plain
+ * object: assigning them would mutate the prototype (prototype-pollution vector).
+ */
+const UNSAFE_KEYS = new Set<string>(["__proto__", "constructor", "prototype"]);
+
+/**
+ * Copy any unrecognised top-level keys from the layout onto the serialized object,
+ * after the known fields, so additive sections survive a load and resave.
+ */
+function appendUnknownSections(
+  target: Record<string, unknown>,
+  layout: Layout,
+): void {
+  for (const [key, value] of Object.entries(
+    layout as unknown as Record<string, unknown>,
+  )) {
+    if (value === undefined) continue;
+    if (UNSAFE_KEYS.has(key)) continue;
+    if (KNOWN_TOP_LEVEL_KEYS.has(key)) continue;
+    if (key in target) continue;
+    target[key] = value;
+  }
+}
+
+/**
  * Serialize a layout to YAML string
  * Excludes runtime-only fields (view) and orders fields according to schema v1.0.0
  * Includes metadata if present
@@ -288,6 +333,8 @@ export async function serializeLayoutToYaml(layout: Layout): Promise<string> {
   if (layout.cables !== undefined && layout.cables.length > 0) {
     layoutForSerialization.cables = layout.cables.map(orderCableFields);
   }
+
+  appendUnknownSections(layoutForSerialization, layout);
 
   return serializeToYaml(layoutForSerialization);
 }
@@ -338,6 +385,8 @@ export async function serializeLayoutToYamlWithMetadata(
   if (layout.cables !== undefined && layout.cables.length > 0) {
     layoutForSerialization.cables = layout.cables.map(orderCableFields);
   }
+
+  appendUnknownSections(layoutForSerialization, layout);
 
   return serializeToYaml(layoutForSerialization);
 }
