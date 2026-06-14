@@ -146,12 +146,14 @@ test.describe("visual regression", () => {
     await expect(menu).toHaveScreenshot("menu-file.png");
   });
 
-  test("menu - settings", async ({ page }) => {
+  test("dialog - settings", async ({ page }) => {
     await gotoVisual(page, POPULATED_URL, { theme: "light" });
-    await page.getByRole("button", { name: "Settings menu" }).click();
-    const menu = page.getByRole("menu");
-    await expect(menu).toBeVisible();
+    // The gear button is wrapped by a tooltip trigger that also exposes the
+    // "Settings" accessible name, so target the action button by its testid.
+    await page.getByTestId("btn-settings").click();
+    const dialog = page.getByRole("dialog", { name: "Settings" });
+    await expect(dialog).toBeVisible();
     await settle(page);
-    await expect(menu).toHaveScreenshot("menu-settings.png");
+    await expect(dialog).toHaveScreenshot("dialog-settings.png");
   });
 });

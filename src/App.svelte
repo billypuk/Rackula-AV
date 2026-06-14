@@ -492,10 +492,6 @@
   // --- Thin wrappers for Toolbar/Canvas/KeyboardHandler callbacks ---
   // These delegate to dialogStore; the actual dialog logic lives in DialogOrchestrator.
 
-  function handleToggleTheme() {
-    uiStore.toggleTheme();
-  }
-
   function handleToggleDisplayMode() {
     uiStore.toggleDisplayMode();
     layoutStore.updateDisplayMode(uiStore.displayMode);
@@ -512,8 +508,8 @@
     dialogOrchestrator.handleImportDevices();
   }
 
-  function handleOpenCleanupDialog() {
-    dialogOrchestrator.handleOpenCleanupDialog();
+  function handleOpenSettings() {
+    dialogStore.open("settings");
   }
 
   // Rack interaction handlers (used by Canvas and RackList)
@@ -558,13 +554,7 @@
   >
     <Toolbar
       hasRacks={layoutStore.hasRack}
-      theme={uiStore.theme}
       displayMode={uiStore.displayMode}
-      showAnnotations={uiStore.showAnnotations}
-      showBanana={uiStore.showBanana}
-      compatibleOnly={uiStore.compatibleOnly}
-      warnOnUnsavedChanges={uiStore.warnOnUnsavedChanges}
-      promptCleanupOnSave={uiStore.promptCleanupOnSave}
       {partyMode}
       onsave={maybeSave}
       onsaveas={maybeSaveAs}
@@ -577,14 +567,8 @@
       onnewcustomdevice={handleAddDevice}
       onlayouts={handleShowLayouts}
       onfitall={handleFitAll}
-      ontoggletheme={handleToggleTheme}
       ontoggledisplaymode={handleToggleDisplayMode}
-      ontoggleannotations={handleToggleAnnotations}
-      ontogglebanana={() => uiStore.toggleBanana()}
-      ontogglecompatibleonly={() => uiStore.toggleCompatibleOnly()}
-      ontogglewarnunsaved={() => uiStore.toggleWarnOnUnsavedChanges()}
-      ontogglepromptcleanup={() => uiStore.togglePromptCleanupOnSave()}
-      onopencleanup={handleOpenCleanupDialog}
+      onsettings={handleOpenSettings}
       onhelp={handleHelp}
       onnewlayout={resetAndOpenNewRack}
     />
@@ -640,7 +624,6 @@
               onload={handleLoad}
               onfitall={handleFitAll}
               onresetzoom={() => canvasStore.resetZoom()}
-              ontoggletheme={handleToggleTheme}
               {partyMode}
               enableLongPress={false}
               onracklongpress={handleRackLongPress}
@@ -661,7 +644,6 @@
           onload={handleLoad}
           onfitall={handleFitAll}
           onresetzoom={() => canvasStore.resetZoom()}
-          ontoggletheme={handleToggleTheme}
           {partyMode}
           enableLongPress={viewportStore.isMobile && !placementStore.isPlacing}
           onracklongpress={handleRackLongPress}
