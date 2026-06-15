@@ -7,12 +7,14 @@ import { resetToastStore } from "$lib/stores/toast.svelte";
 import * as persistenceApi from "$lib/storage/api";
 import * as loadPipeline from "$lib/storage/load-pipeline";
 import * as persistenceStore from "$lib/storage/availability.svelte";
+import { formatSnapshotTimestamp } from "$lib/utils/snapshot-timestamp";
 
 // Mock the dependencies
 vi.mock("$lib/storage/api", () => ({
   listSavedLayouts: vi.fn(),
   deleteSavedLayout: vi.fn(),
   loadSavedLayout: vi.fn(),
+  listSnapshots: vi.fn(),
   PersistenceError: class PersistenceError extends Error {
     statusCode?: number;
     constructor(message: string, statusCode?: number) {
@@ -26,6 +28,7 @@ vi.mock("$lib/storage/api", () => ({
 vi.mock("$lib/storage/load-pipeline", () => ({
   loadFromApi: vi.fn(),
   loadFromFile: vi.fn(),
+  restoreFromSnapshot: vi.fn(),
 }));
 
 vi.mock("$lib/storage/availability.svelte", () => ({
@@ -177,5 +180,86 @@ describe("LoadDialog", () => {
 
     expect(await screen.findByText("Server error")).toBeInTheDocument();
     expect(screen.getByText(/Retry/i)).toBeInTheDocument();
+  });
+
+  it("lists snapshots with localized timestamps when expanded", async () => {
+    const mockLayouts: persistenceApi.SavedLayoutItem[] = [
+      {
+        id: "uuid-1",
+        name: "Test Layout 1",
+        version: "1.0",
+        updatedAt: new Date().toISOString(),
+        rackCount: 1,
+        deviceCount: 5,
+        valid: true,
+      },
+    ];
+    vi.mocked(persistenceApi.listSavedLayouts).mockResolvedValue(mockLayouts);
+    vi.mocked(persistenceApi.listSnapshots).mockResolvedValue([
+      {
+        filename: "test-layout-1~20260615-143005.yaml",
+        timestamp: "2026-06-15T14:30:05.000Z",
+        size: 1024,
+      },
+    ]);
+
+    dialogStore.open("load");
+    render(LoadDialog);
+    await screen.findByText("Test Layout 1");
+
+    await fireEvent.click(
+      screen.getByLabelText(/Show snapshots for Test Layout 1/i),
+    );
+
+    expect(persistenceApi.listSnapshots).toHaveBeenCalledWith("uuid-1");
+    // The raw UTC filename suffix must not surface; a localized time does.
+    const expectedLabel = formatSnapshotTimestamp(
+      "test-layout-1~20260615-143005.yaml",
+    );
+    expect(
+      await screen.findByText(expectedLabel),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/20260615-143005/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("restores a snapshot through the load pipeline and closes the dialog", async () => {
+    const mockLayouts: persistenceApi.SavedLayoutItem[] = [
+      {
+        id: "uuid-1",
+        name: "Test Layout 1",
+        version: "1.0",
+        updatedAt: new Date().toISOString(),
+        rackCount: 1,
+        deviceCount: 5,
+        valid: true,
+      },
+    ];
+    vi.mocked(persistenceApi.listSavedLayouts).mockResolvedValue(mockLayouts);
+    vi.mocked(persistenceApi.listSnapshots).mockResolvedValue([
+      {
+        filename: "test-layout-1~20260615-143005.yaml",
+        timestamp: "2026-06-15T14:30:05.000Z",
+        size: 1024,
+      },
+    ]);
+    vi.mocked(loadPipeline.restoreFromSnapshot).mockResolvedValue(true);
+
+    dialogStore.open("load");
+    render(LoadDialog);
+    await screen.findByText("Test Layout 1");
+
+    await fireEvent.click(
+      screen.getByLabelText(/Show snapshots for Test Layout 1/i),
+    );
+    const restoreButton = await screen.findByText(/Restore/i);
+    await fireEvent.click(restoreButton);
+
+    expect(loadPipeline.restoreFromSnapshot).toHaveBeenCalledWith(
+      "uuid-1",
+      "test-layout-1~20260615-143005.yaml",
+    );
+    expect(dialogStore.isOpen("load")).toBe(false);
   });
 });
