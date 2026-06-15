@@ -10,19 +10,28 @@
 <script lang="ts">
   import { Popover } from "bits-ui";
   import { IconCheck, IconClock, IconWarningTriangle } from "./icons";
+  import ConfirmReplaceDialog from "./ConfirmReplaceDialog.svelte";
   import { ICON_SIZE } from "$lib/constants/sizing";
   import { getLayoutStore } from "$lib/stores/layout.svelte";
+  import { getToastStore } from "$lib/stores/toast.svelte";
   import {
     getLayoutDurability,
     loadFromFile,
     getStorageMode,
     getServerInstanceLabel,
     handleExportAll,
+    handleSaveAsArchive,
   } from "$lib/storage";
-  import { maybeSaveAs } from "$lib/utils/app-actions";
+  import {
+    maybeSaveAs,
+    shouldShowCleanupPrompt,
+  } from "$lib/utils/app-actions";
+  import { evaluateBackupNudge, NUDGE_MESSAGE } from "$lib/utils/backup-nudge";
   import "$lib/styles/menu.css";
 
-  const durability = getLayoutDurability(getLayoutStore());
+  const layoutStore = getLayoutStore();
+  const durability = getLayoutDurability(layoutStore);
+  const toastStore = getToastStore();
 
   // Storage mode is fixed for the session (read once from runtime config), so
   // the export-all framing is computed up front rather than tracked reactively.
@@ -36,6 +45,33 @@
 
   let open = $state(false);
   let exportingAll = $state(false);
+  let restoreConfirmOpen = $state(false);
+
+  // Backup nudge: browser mode only, per the epic signal budget (#2071). Server
+  // mode persists to the server, so an export reminder would be noise. The nudge
+  // tracks changesSinceExport and fires a factual toast when a new checkpoint is
+  // crossed; evaluateBackupNudge owns the cadence and snooze persistence.
+  if (!isServerMode) {
+    $effect(() => {
+      // Keyed by the stable per-layout id (layout.metadata.id, the UUID that
+      // survives renames and reloads), not the per-tab id which nextTabId()
+      // regenerates on every reload/restore. A per-tab key would let persisted
+      // checkpoints drift across reloads and re-fire or attach to the wrong
+      // layout.
+      const layoutId = layoutStore.layout.metadata?.id;
+      if (!layoutId) return;
+      const changes = layoutStore.changesSinceExport;
+      const exported = layoutStore.hasEverExported;
+      evaluateBackupNudge(layoutId, changes, exported, () => {
+        toastStore.showToast(NUDGE_MESSAGE, "info", 8000, {
+          label: "Export",
+          onClick: () => {
+            maybeSaveAs();
+          },
+        });
+      });
+    });
+  }
 
   // Announced only after the status settles. The save->saved debounce cascade
   // produces several intermediate statuses in quick succession; announcing every
@@ -71,9 +107,41 @@
     }
   }
 
-  async function handleRestore() {
-    await loadFromFile();
+  function handleRestore() {
     open = false;
+    // Restoring replaces the working copy. Confirm first only when there are
+    // changes not yet in any exported file; a fully backed-up copy goes straight
+    // to the picker.
+    if (layoutStore.changesSinceExport > 0) {
+      restoreConfirmOpen = true;
+    } else {
+      void loadFromFile();
+    }
+  }
+
+  function handleRestoreCancel() {
+    restoreConfirmOpen = false;
+  }
+
+  function handleRestoreReplace() {
+    restoreConfirmOpen = false;
+    void loadFromFile();
+  }
+
+  async function handleRestoreExportFirst() {
+    restoreConfirmOpen = false;
+    // Route through the same cleanup-prompt contract as the other save-as
+    // paths: when unused custom device types exist, the prompt is shown and the
+    // export is deferred into the cleanup dialog. The restore does not chain in
+    // that case (the user is now in the cleanup flow), matching maybeSaveAs's
+    // fire-and-forget contract.
+    if (shouldShowCleanupPrompt("saveAs")) return;
+    // Turn the dangerous moment into the backup moment: export, then restore
+    // only if the export actually succeeded (not cancelled or failed).
+    const exported = await handleSaveAsArchive();
+    if (exported) {
+      await loadFromFile();
+    }
   }
 </script>
 
@@ -137,6 +205,16 @@
     </Popover.Content>
   </Popover.Portal>
 </Popover.Root>
+
+<ConfirmReplaceDialog
+  open={restoreConfirmOpen}
+  title="Replace this layout?"
+  message="This layout has changes that are not in any exported file. Restoring replaces it with the file you choose."
+  saveFirstLabel="Export first"
+  onSaveFirst={handleRestoreExportFirst}
+  onReplace={handleRestoreReplace}
+  onCancel={handleRestoreCancel}
+/>
 
 <span class="sr-only" role="status" aria-live="polite" aria-atomic="true">
   {announced}
