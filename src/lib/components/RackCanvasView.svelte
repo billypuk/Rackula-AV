@@ -11,7 +11,8 @@
   import { getCanvasStore } from "$lib/stores/canvas.svelte";
   import { getUIStore } from "$lib/stores/ui.svelte";
   import { getPlacementStore } from "$lib/stores/placement.svelte";
-  import { hapticSuccess } from "$lib/utils/haptics";
+  import { getToastStore } from "$lib/stores/toast.svelte";
+  import { hapticSuccess, hapticError } from "$lib/utils/haptics";
   import { resolveSelectedDevice } from "$lib/utils/device-selection";
   import type { RackSwipeDirection } from "$lib/utils/gestures";
   import type { DeviceFace, SlotPosition } from "$lib/types";
@@ -86,6 +87,7 @@
   const canvasStore = getCanvasStore();
   const uiStore = getUIStore();
   const placementStore = getPlacementStore();
+  const toastStore = getToastStore();
 
   const racks = $derived(layoutStore.racks);
   const activeRackId = $derived(layoutStore.activeRackId);
@@ -132,6 +134,11 @@
       placementStore.completePlacement();
       // Reset view to show full rack after placement completes
       canvasStore.fitAll(layoutStore.racks);
+    } else {
+      // Block-live UX (D5): the placement was refused (carrier-required,
+      // collision, or out of bounds); tell the user rather than fail silently.
+      hapticError();
+      toastStore.showToast("Can't place device here", "warning", 3000);
     }
   }
 
@@ -183,7 +190,21 @@
     }>,
   ) {
     const { rackId, slug, position, face, slot_position } = event.detail;
-    layoutStore.placeDevice(rackId, slug, position, face, slot_position);
+    const placed = layoutStore.placeDevice(
+      rackId,
+      slug,
+      position,
+      face,
+      slot_position,
+    );
+    // Block-live UX (D5): the store refuses an invalid rail placement (a
+    // carrier-requiring device, a collision, or out of bounds). Tell the user
+    // rather than fail silently, and do not signal a drop that did not happen.
+    if (!placed) {
+      hapticError();
+      toastStore.showToast("Can't place device here", "warning", 3000);
+      return;
+    }
     ondevicedrop?.(event);
   }
 
