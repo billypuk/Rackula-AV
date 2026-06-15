@@ -24,6 +24,7 @@ import {
   MinimalLayoutV2Schema,
   CATEGORY_TO_ABBREV,
   ABBREV_TO_CATEGORY,
+  SHARE_FORMAT_VERSION,
   type MinimalLayout,
   type MinimalLayoutV2,
   type MinimalDeviceType,
@@ -48,19 +49,46 @@ function normalizeRackWidth(width: number): 10 | 19 {
 }
 
 /**
- * Convert a rack's devices to minimal format
+ * Convert a rack's devices to minimal format.
+ *
+ * Container children (carrier-first) are encoded with `ci` (the parent
+ * carrier's index in this same array), `si` (the parent slot id), and a raw
+ * 0-indexed slot position (not a human-U rail value). Synthesized carriers
+ * carry `a: 1`. The array order is preserved so `ci` indices stay valid on
+ * decode.
  */
 function convertDevices(devices: PlacedDevice[]): MinimalDevice[] {
-  return devices.map((d) => ({
-    t: d.device_type,
-    p: toHumanUnits(d.position),
-    f: d.face,
-    ...(d.name ? { n: d.name } : {}),
-  }));
+  // Map each device id to its index so a child can reference its parent
+  // carrier positionally (ids are regenerated on decode).
+  const indexById = new Map<string, number>();
+  devices.forEach((d, index) => indexById.set(d.id, index));
+
+  return devices.map((d) => {
+    // Encode as a child only when the parent carrier actually resolves in this
+    // same array AND a slot is set. An orphaned child (dangling container_id,
+    // or parent in another rack) falls back to a rack-level encoding so its
+    // human-U position is preserved instead of leaking a raw 0-index.
+    const parentIndex =
+      d.container_id !== undefined ? indexById.get(d.container_id) : undefined;
+    const isChild = parentIndex !== undefined && d.slot_id !== undefined;
+    return {
+      t: d.device_type,
+      // Children use their raw 0-indexed slot position; rack-level devices use
+      // human-U for readability.
+      p: isChild ? d.position : toHumanUnits(d.position),
+      f: d.face,
+      ...(d.name ? { n: d.name } : {}),
+      ...(isChild ? { ci: parentIndex } : {}),
+      ...(isChild ? { si: d.slot_id } : {}),
+      ...(d.auto_created ? { a: 1 as const } : {}),
+    };
+  });
 }
 
 /**
- * Convert minimal device types back to full DeviceType[]
+ * Convert minimal device types back to full DeviceType[]. Container types carry
+ * their slot grid / slot_width / subdevice_role so their children resolve to
+ * real slots after a round trip.
  */
 function convertDeviceTypes(dt: MinimalDeviceType[]): DeviceType[] {
   return dt.map((item) => ({
@@ -70,20 +98,66 @@ function convertDeviceTypes(dt: MinimalDeviceType[]): DeviceType[] {
     ...(item.m ? { model: item.m } : {}),
     colour: item.c,
     category: ABBREV_TO_CATEGORY[item.x] ?? "other",
+    ...(item.sl
+      ? {
+          slots: item.sl.map((s) => ({
+            id: s.id,
+            position: { row: s.r, col: s.cl },
+            ...(s.wf !== undefined ? { width_fraction: s.wf } : {}),
+            ...(s.hu !== undefined ? { height_units: s.hu } : {}),
+          })),
+        }
+      : {}),
+    ...(item.sw !== undefined ? { slot_width: item.sw } : {}),
+    ...(item.sr ? { subdevice_role: item.sr } : {}),
   }));
 }
 
 /**
- * Convert minimal devices back to full PlacedDevice[]
+ * Convert minimal devices back to full PlacedDevice[].
+ *
+ * Container children (`ci` set) get a fresh container_id resolved from the
+ * parent carrier's index, their slot_id from `si`, and a raw 0-indexed
+ * position. A `ci` pointing outside the array, or at a non-carrier, is dropped
+ * to a bare rack-level placement rather than trusted (untrusted share input).
  */
 function convertMinimalDevices(devices: MinimalDevice[]): PlacedDevice[] {
-  return devices.map((d) => ({
-    id: generateId(),
-    device_type: d.t,
-    position: toInternalUnits(d.p),
-    face: d.f,
-    ...(d.n ? { name: d.n } : {}),
-  }));
+  // Pre-generate an id per index so children can resolve their parent before
+  // the parent itself is converted (order-independent).
+  const idByIndex = devices.map(() => generateId());
+
+  return devices.map((d, index) => {
+    const base: PlacedDevice = {
+      id: idByIndex[index]!,
+      device_type: d.t,
+      position: 0,
+      face: d.f,
+    };
+    if (d.n) base.name = d.n;
+    if (d.a) base.auto_created = true;
+
+    // Trust a parent reference only when it points at a real, in-range
+    // container device that is not itself a child. This preserves any container
+    // (user-placed shelf/chassis as well as synthesized carriers) while
+    // rejecting untrusted input that attaches a child to another child.
+    const parent =
+      d.ci !== undefined && d.ci >= 0 && d.ci < devices.length && d.ci !== index
+        ? devices[d.ci]
+        : undefined;
+    const hasValidParent =
+      parent !== undefined && d.si !== undefined && parent.ci === undefined;
+
+    if (hasValidParent) {
+      // Child: raw 0-indexed slot position, container/slot references.
+      base.position = d.p;
+      base.container_id = idByIndex[d.ci!]!;
+      base.slot_id = d.si;
+    } else {
+      // Rack-level: human-U -> internal units.
+      base.position = toInternalUnits(d.p);
+    }
+    return base;
+  });
 }
 
 // =============================================================================
@@ -133,6 +207,27 @@ export function toMinimalLayout(layout: Layout): MinimalLayoutV2 {
       ...(deviceType.model ? { m: deviceType.model } : {}),
       c: deviceType.colour,
       x: CATEGORY_TO_ABBREV[deviceType.category] ?? "o",
+      // Container types carry their slot grid so children round-trip to real
+      // slots (a child references slot_id, which must exist on the parent type).
+      ...(deviceType.slots && deviceType.slots.length > 0
+        ? {
+            sl: deviceType.slots.map((s) => ({
+              id: s.id,
+              r: s.position.row,
+              cl: s.position.col,
+              ...(s.width_fraction !== undefined
+                ? { wf: s.width_fraction }
+                : {}),
+              ...(s.height_units !== undefined ? { hu: s.height_units } : {}),
+            })),
+          }
+        : {}),
+      ...(deviceType.slot_width !== undefined
+        ? { sw: deviceType.slot_width }
+        : {}),
+      ...(deviceType.subdevice_role
+        ? { sr: deviceType.subdevice_role }
+        : {}),
     }));
 
   // Convert all racks to MinimalRackV2
@@ -166,6 +261,7 @@ export function toMinimalLayout(layout: Layout): MinimalLayoutV2 {
 
   return {
     v: layout.version,
+    fv: SHARE_FORMAT_VERSION,
     n: layout.name,
     rs,
     ...(rg ? { rg } : {}),
