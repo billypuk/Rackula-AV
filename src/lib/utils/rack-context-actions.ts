@@ -9,6 +9,7 @@ import type { getSelectionStore } from "$lib/stores/selection.svelte";
 import type { getToastStore } from "$lib/stores/toast.svelte";
 import { toHumanUnits, toInternalUnits } from "$lib/utils/position";
 import { canPlaceDevice } from "$lib/utils/collision";
+import { flipDeviceFaceAt } from "$lib/actions/selection-actions";
 
 /** Identifies a right-clicked device and the screen position for the context menu. */
 export interface ContextMenuTarget {
@@ -34,6 +35,8 @@ export interface RackContextActions {
   ): void;
   /** Move the device one U-position downward. */
   handleMoveDown(rack: RackType, target: ContextMenuTarget): void;
+  /** Toggle the device's mounting face between front and rear. */
+  handleFlip(rack: RackType, target: ContextMenuTarget): void;
   /** Remove the device from the rack. */
   handleDelete(target: ContextMenuTarget): void;
   /** Whether the device can move up (checks bounds and collisions). */
@@ -104,6 +107,10 @@ export function createContextMenuActions(
     }
   }
 
+  function handleFlip(rack: RackType, target: ContextMenuTarget): void {
+    flipDeviceFaceAt(layoutStore, toastStore, rack.id, target.deviceIndex);
+  }
+
   function handleDelete(target: ContextMenuTarget): void {
     layoutStore.removeDeviceFromRack(target.rackId, target.deviceIndex);
     selectionStore.clearSelection();
@@ -156,6 +163,7 @@ export function createContextMenuActions(
     handleDuplicate,
     handleMoveUp,
     handleMoveDown,
+    handleFlip,
     handleDelete,
     getCanMoveUp,
     getCanMoveDown,
