@@ -164,7 +164,12 @@ gh pr view <number> --comments
 
 ## Development Philosophy
 
-**Greenfield approach:** Do not use migration or legacy support concepts in this project. Implement features as if they are the first and only implementation.
+**Prior-release data is supported and tested:** Rackula has shipped releases that
+real users run with saved data. Reading data written by a prior release is a
+first-class, tested requirement. A schema change must be backward-compatible, or
+ship a migration plus a new fixture in the upgrade corpus
+(`src/tests/fixtures/upgrade-corpus/`). See the design at
+`docs/superpowers/specs/2026-06-17-upgrade-safety-harness-design.md`.
 
 **Simplicity first:**
 
@@ -172,12 +177,16 @@ gh pr view <number> --comments
 - Simple solutions over abstractions; three similar lines > premature abstraction
 - Delete unused code completely (no `_unused` vars)
 
-**No backwards compatibility hacks:**
+**No dead-code hacks:**
 
 - No renaming to `_unusedVar`
 - No re-exporting removed types
 - No `// removed` comments
 - If unused, delete it
+
+This is about dead code, not data. Migrations and legacy-data adapters that let
+prior-release layouts load are required code, not hacks; keep them and test them
+via the upgrade corpus.
 
 **File operations:**
 
