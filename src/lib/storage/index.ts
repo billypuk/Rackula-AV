@@ -104,3 +104,8 @@ export {
   restorePreCarrierBackup,
   discardPreCarrierBackup,
 } from "./pre-carrier-backup";
+export {
+  markPreCarrierMigrationPending,
+  hasPreCarrierMigrationPending,
+  clearPreCarrierMigrationPending,
+} from "./pre-carrier-migration-pending";
