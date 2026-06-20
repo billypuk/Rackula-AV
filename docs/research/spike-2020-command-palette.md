@@ -1,6 +1,6 @@
 # Spike #2020: Command palette
 
-Date: 2026-06-13 Epic: #2017 (Canvas UX Overhaul) Milestone: M14 Status: complete (build-later, non-blocking)
+Date: 2026-06-13 Epic: #2017 (Canvas UX Overhaul) Milestone: M014 Status: complete (build-later, non-blocking)
 
 Supporting research: `2020-codebase.md`, `2020-external.md`, `2020-patterns.md`. Mock: `spike-2020-palette-mock.svg`.
 
@@ -48,7 +48,7 @@ The palette is an accelerator, never the sole path. Save, Share, Export and all 
 - Contextual: `scope: selection` commands appear only when enabled; the current selection's verbs lead the empty state.
 - Empty state: recents -> selection block -> short grouped command list. Never blank.
 - Anatomy: input row with search icon; grouped results with headings; rows with optional shortcut badges; footer key-hint bar.
-- Mobile: bottom sheet, larger targets (`viewportStore.isMobile`); follows the M12 mobile shell (#2097).
+- Mobile: bottom sheet, larger targets (`viewportStore.isMobile`); follows the M012 mobile shell (#2097).
 - Accessibility: combobox + listbox via bits-ui Command (focus stays on input, arrows move aria-activedescendant) inside the focus-managed Dialog; announce open/close; honour the #2098/#2099/#2100 guard rails.
 
 ---
@@ -76,7 +76,7 @@ See `spike-2020-palette-mock.svg`. Left: the discoverable top-bar pill and the d
 
 ## Implementation decomposition
 
-Filed as children of epic #2017, M14, sequenced after #2096 / #2073 / #2075. See `.claude/spike-2020-issues.yaml` for the full definitions.
+Filed as children of epic #2017, M014, sequenced after #2096 / #2073 / #2075. See `.claude/spike-2020-issues.yaml` for the full definitions.
 
 1. Command palette shell: Ctrl/Cmd+K invocation + top-bar pill + bits-ui Command in a Dialog, command-mode projected from the registry, fuzzy ranking, footer, ARIA, listed in the help overlay. Depends on #2096.
 2. Recents + contextual commands: MRU recents in localStorage and selection-aware empty state. Depends on shell.

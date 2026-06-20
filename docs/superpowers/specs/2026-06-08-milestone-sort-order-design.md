@@ -4,17 +4,17 @@
 
 ## Problem
 
-GitHub Projects sorts milestones by title lexicographically. With unpadded numbers (M1, M2, ... M10), double-digit milestones sort before single-digit ones:
+GitHub Projects sorts milestones by title lexicographically. With unpadded numbers (M1, M2, ... M010), double-digit milestones sort before single-digit ones:
 
 ```
-M1, M10, M11, M12, M13, M2, M3, M4, M5, M6, M7, M8, M9
+M1, M010, M011, M012, M013, M2, M3, M4, M5, M6, M7, M8, M9
 ```
 
 This will worsen as more milestones are added. GitHub Projects v2 supports sorting items by milestone, but the sort is lexicographic on title and there is no way to control milestone column/group order independently when milestones are used for slicing or grouping.
 
 ## Decision
 
-Zero-pad all milestone numbers to 2 digits: `M01`, `M02`, ... `M99`.
+Zero-pad all milestone numbers to 2 digits: `M001`, `M002`, ... `M099`.
 
 This is the only approach that fixes lexicographic sort. Alternatives evaluated:
 
@@ -27,28 +27,28 @@ This is the only approach that fixes lexicographic sort. Alternatives evaluated:
 All milestone titles use 2-digit zero-padded numbers:
 
 ```
-M01 -- LXC Build & Hardening
-M02 -- LXC Release & Stability
-M03 -- Data Format & Interop
-M04 -- Type Safety, Decomposition & Stability
-M05 -- Connectivity Core
-M06 -- Connectivity Advanced
-M07 -- Device Library & Image System
-M08 -- Export & Share Architecture
-M09 -- Connectivity & Power Extensions
-M10 -- Isometric, Advanced Export & GIS
-M11 -- Internationalization
-M12 -- Mobile & Touch UX
-M13 -- UX Polish & Accessibility
+M001 -- LXC Build & Hardening
+M002 -- LXC Release & Stability
+M003 -- Data Format & Interop
+M004 -- Type Safety, Decomposition & Stability
+M005 -- Connectivity Core
+M006 -- Connectivity Advanced
+M007 -- Device Library & Image System
+M008 -- Export & Share Architecture
+M009 -- Connectivity & Power Extensions
+M010 -- Isometric, Advanced Export & GIS
+M011 -- Internationalization
+M012 -- Mobile & Touch UX
+M013 -- UX Polish & Accessibility
 ```
 
-Width: 2 digits (M01-M99). Project will not reach 100 milestones.
+Width: 2 digits (M001-M099). Project will not reach 100 milestones.
 
 ## Migration
 
 ### Step 1: Rename GitHub milestones
 
-Use the GitHub API to rename all 14 milestones. Order: M01 (closed, number 20) first, then M02-M13 (open, numbers 21-35).
+Use the GitHub API to rename all 14 milestones. Order: M001 (closed, number 20) first, then M002-M013 (open, numbers 21-35).
 
 ```bash
 gh api repos/RackulaLives/Rackula/milestones/{NUMBER} -X PATCH -f title="M{NN} -- {TITLE}"
@@ -70,7 +70,7 @@ Manual audit and update of all memory entries in `~/.claude/projects/-Users-gvns
 
 ### Step 4: Update CLAUDE.md
 
-CLAUDE.md references M01-M04 in the Versioning Policy section. Update to M01-M04.
+CLAUDE.md references M001-M004 in the Versioning Policy section. Update to M001-M004.
 
 ### Step 5: Verify
 

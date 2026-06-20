@@ -1,6 +1,6 @@
 # Carrier-First Sub-U Devices
 
-Date: 2026-06-12 Status: Approved direction, pending plan Related: #2152 (regression), #1248, #1602 (prior slot_position regressions), M03 Data Format & Interop
+Date: 2026-06-12 Status: Approved direction, pending plan Related: #2152 (regression), #1248, #1602 (prior slot_position regressions), M003 Data Format & Interop
 
 ## Problem
 
@@ -18,7 +18,7 @@ A device with u_height less than 1, a non-integer u_height, or less than full wi
 2. The slot_position left/right placement pathway is deleted, including the pair recovery logic (source of #1248 and #1602). A half-width pair becomes a 1-row, 2-col carrier. slot_width survives only as a device size descriptor used for cell-fit checks.
 3. Auto-created carriers self-remove when their last child is removed. User-placed carriers persist when empty.
 4. Rail-mountable devices must have integer u_height. Fractional heights of any size, including 1.5U and above, require a carrier. Revisit if real 1.5U rail gear is requested; the starter library contains none.
-5. Sequencing: a narrow #2152 patch ships first on the existing slot machinery (restores pair-keeping, fits M02 stability). Carrier-first lands in M03 and deletes that machinery.
+5. Sequencing: a narrow #2152 patch ships first on the existing slot machinery (restores pair-keeping, fits M002 stability). Carrier-first lands in M003 and deletes that machinery.
 
 ## Data model
 
@@ -84,8 +84,8 @@ No count assertions, no schema re-testing, factories from src/tests/factories.ts
 
 ## Sequencing
 
-1. M02: narrow #2152 patch restoring pair-keeping on existing slot machinery.
-2. M03: carrier-first as specified here, deleting the slot_position pathway and the fractional rail position machinery.
+1. M002: narrow #2152 patch restoring pair-keeping on existing slot machinery.
+2. M003: carrier-first as specified here, deleting the slot_position pathway and the fractional rail position machinery.
 
 ## Future consumers
 

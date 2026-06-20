@@ -1,6 +1,6 @@
 # Spike #2179: Browser-mode Multi-layout Storage Schema
 
-Date: 2026-06-14 Parent epic: #2017 (Canvas UX Overhaul, milestone M14) Pairs with: spike #2018 (interaction model, which does not own persistence)
+Date: 2026-06-14 Parent epic: #2017 (Canvas UX Overhaul, milestone M014) Pairs with: spike #2018 (interaction model, which does not own persistence)
 
 ---
 

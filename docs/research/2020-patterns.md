@@ -49,7 +49,7 @@ Empty state (before typing): never blank. Order: Recents (if any) -> Contextual 
 
 Visual structure (cmdk anatomy, what bits-ui Command renders): input row with leading search icon; grouped results with section headings (Recent, Selection, File, View, Layout); each row = label + optional trailing shortcut badge (doubles as passive shortcut teaching); a footer key-hint bar (up/down navigate, enter run, esc close). Honour the guard rails: visible focus, reduced motion, 44px touch targets (#2100), axe-clean (#2099).
 
-Mobile: render as a bottom sheet with larger targets (`viewportStore.isMobile`). Mobile shell is M12 (#2097); palette mobile treatment follows that work rather than being built bespoke here.
+Mobile: render as a bottom sheet with larger targets (`viewportStore.isMobile`). Mobile shell is M012 (#2097); palette mobile treatment follows that work rather than being built bespoke here.
 
 Accessibility: combobox + listbox is handled by bits-ui Command (DOM focus stays on the input, arrows move `aria-activedescendant`); wrap in the focus-managed bits-ui Dialog (Esc always closes, focus returns to the trigger). Announce open/close to assistive tech.
 

@@ -49,10 +49,10 @@ The `/release` skill will:
 
 **Current milestones:**
 
-- `M01 -- LXC Build & Hardening` (complete)
-- `M02 -- LXC Release & Stability` (in progress)
-- `M03 -- Data Format & Interop` (next)
-- `M04 -- Type Safety, Decomposition & Stability` (planned)
+- `M001 -- LXC Build & Hardening` (complete)
+- `M002 -- LXC Release & Stability` (in progress)
+- `M003 -- Data Format & Interop` (next)
+- `M004 -- Type Safety, Decomposition & Stability` (planned)
 
 ---
 
@@ -102,7 +102,7 @@ GitHub Issues is the source of truth for task tracking. Issue flow is tracked vi
 
 ```bash
 # Find next task (issues in active milestone, Next Up status)
-gh issue list --milestone "M02 -- LXC Release & Stability" --state open
+gh issue list --milestone "M002 -- LXC Release & Stability" --state open
 
 # Get issue details
 gh issue view <number>

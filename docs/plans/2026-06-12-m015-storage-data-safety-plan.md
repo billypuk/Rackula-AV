@@ -1,4 +1,4 @@
-# M15 -- Storage Model & Data Safety Execution Plan
+# M015 -- Storage Model & Data Safety Execution Plan
 
 > For agentic workers: execute one task per session via /dev-issue <number>. The GitHub issue body is the source of truth (each carries an Alignment audit 2026-06-12 section with binding ACs). Do not start a task whose listed blockers are open. Follow repo TDD policy (CLAUDE.md): tests only where behaviour warrants them.
 
@@ -8,21 +8,21 @@ Make storage explicit and data loss hard. The app runs in one of two explicit mo
 
 **Position in sequence**
 
-The milestone sequence is M02 -> M04 -> M03 -> M14 -> M16. M15 runs now, in parallel with M02 and M04 (the milestone number is an ID, not an order). M15's #2037 is on the critical path for both M14 (entry chain) and the M02 dev cutover (#2134), so Stage 2 should not lag.
+The milestone sequence is M002 -> M004 -> M003 -> M014 -> M016. M015 runs now, in parallel with M002 and M004 (the milestone number is an ID, not an order). M015's #2037 is on the critical path for both M014 (entry chain) and the M002 dev cutover (#2134), so Stage 2 should not lag.
 
 **Cross-milestone gates in**
 
-- M04 #2180 (remove @ts-nocheck from src/lib/storage/manager.svelte.ts) must land before #2037, or be folded in as the first commit of #2037's rewrite.
+- M004 #2180 (remove @ts-nocheck from src/lib/storage/manager.svelte.ts) must land before #2037, or be folded in as the first commit of #2037's rewrite.
 - Already satisfied: #2036 (runtime storage mode config injection, closed), #2034 (change counter, closed), #2040 (API pre-overwrite snapshots, closed), #2019 (spike, closed).
 
 **Cross-milestone gates out**
 
-- #2037 gates M14's #2187 (mode-aware menu items, split from #2073); the rest of the entry chain (#2073 shell -> #2081 -> #2080/#2095) depends only on the #2073 shell slice (recorded on epic #2017) and produces the mode mechanics the M02 dev cutover (#2134) deploys config for; land #2037 first or #2134 carries a forward-compat note.
-- #2091's cross-driver storage-contract test is the spec the R2 driver (#2133, M02) must pass.
-- #2035's derived-over-collection durability API is the single source M14 tab dots (#2079) and sidebar dots (#2082) read.
+- #2037 gates M014's #2187 (mode-aware menu items, split from #2073); the rest of the entry chain (#2073 shell -> #2081 -> #2080/#2095) depends only on the #2073 shell slice (recorded on epic #2017) and produces the mode mechanics the M002 dev cutover (#2134) deploys config for; land #2037 first or #2134 carries a forward-compat note.
+- #2091's cross-driver storage-contract test is the spec the R2 driver (#2133, M002) must pass.
+- #2035's derived-over-collection durability API is the single source M014 tab dots (#2079) and sidebar dots (#2082) read.
 - #617 must land before #2035/#2038 reach users in a tagged release, so the chip and nudge never certify an image-dropping export as safe.
-- #2042's restore-through-adapter AC protects pre-bump snapshots once M03 #2158 bumps the layout schema.
-- #2045 (export-all with per-mode framing) moved to M14; it is not part of this milestone's close conditions.
+- #2042's restore-through-adapter AC protects pre-bump snapshots once M003 #2158 bumps the layout schema.
+- #2045 (export-all with per-mode framing) moved to M014; it is not part of this milestone's close conditions.
 
 **Cross-cutting signal-coherence ACs (epic #2071, binding on every UI task)**
 
@@ -54,8 +54,8 @@ The milestone sequence is M02 -> M04 -> M03 -> M14 -> M16. M15 runs now, in para
 
 ### Task: #2037 feat: explicit storage mode in frontend, remove probe-and-guess
 
-- Blockers: #2091, #2059 (stage order); M04 #2180 lands first or is folded in as this task's first commit.
-- Why this position: the mode mechanics everything downstream branches on; gates the M14 entry chain and the M02 dev cutover (#2134), so it leads this stage.
+- Blockers: #2091, #2059 (stage order); M004 #2180 lands first or is folded in as this task's first commit.
+- Why this position: the mode mechanics everything downstream branches on; gates the M014 entry chain and the M002 dev cutover (#2134), so it leads this stage.
 - Scope: read mode from window.**RACKULA_CONFIG**?.storage with browser default; remove hasEverConnectedToApi and probe-and-guess; mode-driven branching in maybeSave and handleLoad; browser-mode startup gets a one-time first-run notice and no offline toasts; server-mode startup gets a health check, empty-list first run, and server-down continuity from the working copy; both "working offline" toasts replaced by instance-named server-drop and recovery toasts. Audit corrections: the ACs' persistence.svelte.ts is now src/lib/storage/manager.svelte.ts; the probe lives in src/lib/storage/availability.svelte.ts. Audit additions: persist the storage mode the session state was written under and detect a flip at startup; on server -> browser flip surface a notice, never silently degrade; on browser -> server flip the working copy's UUID is unknown to the server (no echo baseline, snapshot POST 404s), so offer to upload it as a new server layout via PUT and never silently shadow it with the server list; distinguish auth failure (401/Access-expired needs a re-authenticate affordance) from server-down (retry/backup), which matters once dev fronts the API with Cloudflare Access (#2134).
 - Key files: src/lib/storage/manager.svelte.ts, src/lib/storage/availability.svelte.ts, src/lib/storage/working-copy.ts, src/lib/storage/api.ts, src/lib/components/PersistenceEffects.svelte, src/lib/stores/toast.svelte.ts.
 - Verify: npm run test:run; npm run lint; npm run build; grep -rn hasEverConnectedToApi src returns nothing; manual: npm run dev with no injected config defaults to browser mode with the first-run notice and no offline toast.
@@ -65,7 +65,7 @@ The milestone sequence is M02 -> M04 -> M03 -> M14 -> M16. M15 runs now, in para
 
 - Blockers: #2037 (chip server-mode states consume its mode mechanics; #2034 change counter already closed).
 - Why this position: the chip is the honest-state surface every later task (nudge, misconfiguration, conflict messaging) hangs off; it follows the mode mechanics it renders.
-- Scope: build the workspace-wide chip with states, labels, and a popover shell (facts and action slots) in the reserved toolbar slot. Browser mode: green at changesSinceExport === 0, amber otherwise; server mode reflects save status and reachability; popover shows factual state, last export/save info, and action slots (Export now, Restore from file). Absorbed #2064 a11y ACs: never colour-only (WCAG 1.4.1, each state pairs colour with text or icon change); the chip is a button whose accessible name includes the current state, with state changes announced via live region per the #1901 decisions. Audit additions: interim guard until #617 lands, a layout containing custom images must not reach green via plain-YAML export (route the chip-resetting export through an asset-including path or show an explicit warning state); expose chip state as a derived-over-collection API (per-layout durability rolled up) so M14 #2079/#2082 read the same source.
+- Scope: build the workspace-wide chip with states, labels, and a popover shell (facts and action slots) in the reserved toolbar slot. Browser mode: green at changesSinceExport === 0, amber otherwise; server mode reflects save status and reachability; popover shows factual state, last export/save info, and action slots (Export now, Restore from file). Absorbed #2064 a11y ACs: never colour-only (WCAG 1.4.1, each state pairs colour with text or icon change); the chip is a button whose accessible name includes the current state, with state changes announced via live region per the #1901 decisions. Audit additions: interim guard until #617 lands, a layout containing custom images must not reach green via plain-YAML export (route the chip-resetting export through an asset-including path or show an explicit warning state); expose chip state as a derived-over-collection API (per-layout durability rolled up) so M014 #2079/#2082 read the same source.
 - Key files: src/lib/components/Toolbar.svelte, src/lib/stores/layout/persistence.ts, src/lib/storage/manager.svelte.ts, new chip component under src/lib/components/, spike sections "Recent backup chip definition" and "Spec Reconciliation" in docs/research/spike-2019-storage-model-data-safety.md.
 - Verify: npm run test:run; npm run lint; manual: npm run dev, confirm green at zero changes, amber after an edit, popover facts and action slots render, and screen-reader name announces the state.
 - [ ] Done when: chip states, popover, a11y ACs, the interim image guard, and the derived durability API all pass review and the issue is closed.
@@ -94,7 +94,7 @@ The milestone sequence is M02 -> M04 -> M03 -> M14 -> M16. M15 runs now, in para
 
 - Blockers: #2091 (pinned); #2040 already closed; run after #2041 within this stage (pinned epic order).
 - Why this position: the user-facing recovery surface for the snapshots the rest of the stage produces; it consumes the echo/keep-working-copy semantics #2041 establishes.
-- Scope: LoadDialog shows a snapshots expansion per layout in server mode; restore loads the snapshot as the working copy (restore-as-new-write, no in-place revert). Audit corrections and additions: snapshot entries render localized timestamps, not the raw UTC YYYYMMDD-HHMMSS filename suffix; snapshot restore routes through the same parse/validate/adapt pipeline as file load, so pre-schema-bump snapshots (which will exist once M03 #2158 bumps the schema) hit the import adapter rather than bypassing it.
+- Scope: LoadDialog shows a snapshots expansion per layout in server mode; restore loads the snapshot as the working copy (restore-as-new-write, no in-place revert). Audit corrections and additions: snapshot entries render localized timestamps, not the raw UTC YYYYMMDD-HHMMSS filename suffix; snapshot restore routes through the same parse/validate/adapt pipeline as file load, so pre-schema-bump snapshots (which will exist once M003 #2158 bumps the schema) hit the import adapter rather than bypassing it.
 - Key files: src/lib/components/LoadDialog.svelte, src/lib/storage/api.ts, src/lib/storage/load-pipeline.ts, api/src/routes/layouts.ts (existing list endpoint, reference only).
 - Verify: npm run test:run; npm run lint; manual against a local API: overwrite a layout to create a snapshot, open LoadDialog, expand snapshots, confirm localized timestamp, restore, confirm it becomes the working copy without an in-place revert.
 - [ ] Done when: snapshots are listable and restorable through the validated load pipeline with localized timestamps, and the issue is closed.
@@ -114,7 +114,7 @@ The milestone sequence is M02 -> M04 -> M03 -> M14 -> M16. M15 runs now, in para
 
 - Blockers: #2041 (touches the same autosave effects; pinned order).
 - Why this position: sequenced after the echo/snapshot work by the issue body itself, and its backstop argument depends on #2091 being fixed.
-- Scope: stop two same-origin tabs silently clobbering one localStorage working copy. Per-tab id stamped into session writes; storage-event detection of foreign writes pauses this tab's autosave effects; "Open in another tab" toast with a Reload action; Web Locks wrap the session read-modify-write. Audit ACs: key the tab-id stamp and the Web Lock per layout, not per autosave slot (M14 tabs make the workspace multi-layout and a whole-workspace pause would be wrong; guard semantics under multi-layout are a spike #2018 question, so do not bake in single-slot granularity); Web Locks are used where available (without them the tab-id check alone still prevents silent ping-pong, backstopped by the server-side mismatch snapshot now that #2091 is fixed); a spurious foreign-write signal leaving the tab paused until manual Reload is the documented recovery, not an oversight.
+- Scope: stop two same-origin tabs silently clobbering one localStorage working copy. Per-tab id stamped into session writes; storage-event detection of foreign writes pauses this tab's autosave effects; "Open in another tab" toast with a Reload action; Web Locks wrap the session read-modify-write. Audit ACs: key the tab-id stamp and the Web Lock per layout, not per autosave slot (M014 tabs make the workspace multi-layout and a whole-workspace pause would be wrong; guard semantics under multi-layout are a spike #2018 question, so do not bake in single-slot granularity); Web Locks are used where available (without them the tab-id check alone still prevents silent ping-pong, backstopped by the server-side mismatch snapshot now that #2091 is fixed); a spurious foreign-write signal leaving the tab paused until manual Reload is the documented recovery, not an oversight.
 - Key files: src/lib/storage/working-copy.ts, src/lib/components/PersistenceEffects.svelte, src/lib/stores/toast.svelte.ts, spike section "Twin-tab case".
 - Verify: npm run test:run; npm run lint; manual: open two tabs on npm run dev, edit in one, confirm the other pauses autosave and shows the toast with Reload; confirm keys are per layout id.
 - [ ] Done when: foreign writes are detected and pause autosave with the Reload toast, stamps and locks are keyed per layout, and the issue is closed.
@@ -131,10 +131,10 @@ The milestone sequence is M02 -> M04 -> M03 -> M14 -> M16. M15 runs now, in para
 ## Verification
 
 - [ ] All ten issues closed: #2091, #2059, #2037, #2035, #617, #2041, #2042, #2038, #2044, #2063.
-- [ ] Epic #2071 close conditions: every unchecked implementation and follow-up item is closed or re-homed (#2045 lives in M14; confirm its checkbox on the epic is annotated accordingly) and the epic is closed.
+- [ ] Epic #2071 close conditions: every unchecked implementation and follow-up item is closed or re-homed (#2045 lives in M014; confirm its checkbox on the epic is annotated accordingly) and the epic is closed.
 - [ ] Signal-coherence smoke check: cold start in each mode produces at most one storage toast; with a conflict toast live, no nudge fires; passive states appear only in the chip.
 - [ ] Durability single-source check: chip, and nothing else, computes per-layout durability (grep for duplicated changesSinceExport green-state logic outside the #2035 derived API).
 - [ ] Image-safety smoke check: a layout with a custom image saved via the default YAML path round-trips the image; the chip never shows green off an image-dropping export.
 - [ ] Snapshot trust smoke check: concurrent-write contract test passes (cd api && bun test); a forced conflict produces a snapshot that LoadDialog can restore through the validated pipeline.
 - [ ] Full suite green at milestone close: npm run test:run, npm run lint, npm run build, npm run test:e2e, and cd api && bun test.
-- [ ] Cross-milestone notes recorded: #2134 (M02) and the M14 entry chain unblocked by #2037; #2133 pointed at the storage-contract test from #2091.
+- [ ] Cross-milestone notes recorded: #2134 (M002) and the M014 entry chain unblocked by #2037; #2133 pointed at the storage-contract test from #2091.

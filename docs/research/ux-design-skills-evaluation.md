@@ -1,14 +1,14 @@
-# UX Design Skills Evaluation (for the M14 Canvas UX Overhaul)
+# UX Design Skills Evaluation (for the M014 Canvas UX Overhaul)
 
 Status: Complete Epic: UX Overhaul (#2017) Date: 2026-06-17
 
 ## Question
 
-Four community and official "design skills" for Claude Code circulate as the fix for "Claude sucks at design": `ui-ux-pro-max`, `impeccable`, `design-motion-principles`, and `frontend-design`. Do they have legitimate value for Rackula, specifically for brainstorming improvements to the M14 Canvas UX Overhaul?
+Four community and official "design skills" for Claude Code circulate as the fix for "Claude sucks at design": `ui-ux-pro-max`, `impeccable`, `design-motion-principles`, and `frontend-design`. Do they have legitimate value for Rackula, specifically for brainstorming improvements to the M014 Canvas UX Overhaul?
 
 ## Short answer
 
-Not a meaningful unlock for the structural work, which is roughly 90% of M14. The overhaul is an information-architecture and interaction problem, not a visual identity one, and these skills are built for the opposite problem. The one place worth reaching for an external skill is `design-motion-principles` (audit mode) when polishing micro-interactions, with `impeccable`'s critique commands as an optional review pass on the genuinely new visual surfaces.
+Not a meaningful unlock for the structural work, which is roughly 90% of M014. The overhaul is an information-architecture and interaction problem, not a visual identity one, and these skills are built for the opposite problem. The one place worth reaching for an external skill is `design-motion-principles` (audit mode) when polishing micro-interactions, with `impeccable`'s critique commands as an optional review pass on the genuinely new visual surfaces.
 
 ## Why the category exists
 
@@ -23,9 +23,9 @@ Not a meaningful unlock for the structural work, which is roughly 90% of M14. Th
 | design-motion-principles | kylezantos | Motion design with build and audit modes; weights three named designers' philosophies (Kowalski, Krehel, Tompkins) to context | Medium |
 | ui-ux-pro-max | nextlevelbuilder | Enumerated catalog: 67 UI styles, 161 palettes, 57 font pairings, 99 UX guidelines, 161 reasoning rules | High |
 
-## Why most of it does not fit M14
+## Why most of it does not fit M014
 
-M14's governing principle is "place each control where its scope lives": top bar as workspace frame, layouts as tabs, an honest storage chip, a tabbed and collapsible side panel, floating verb bars, a command registry, lazy session restore, per-layout undo. The hard decisions are tab semantics, a browser-safe keyboard map, storage honesty, and accessibility (WCAG 2.2 AA, axe-core CI, visual-regression tripwires, focus management).
+M014's governing principle is "place each control where its scope lives": top bar as workspace frame, layouts as tabs, an honest storage chip, a tabbed and collapsible side panel, floating verb bars, a command registry, lazy session restore, per-layout undo. The hard decisions are tab semantics, a browser-safe keyboard map, storage honesty, and accessibility (WCAG 2.2 AA, axe-core CI, visual-regression tripwires, focus management).
 
 The skills' entire pitch is "commit to a distinctive visual identity, avoid the generic middle." Rackula has already solved that:
 
@@ -58,7 +58,7 @@ Its `/audit` and `/critique` commands are usable as a second opinion on the genu
 
 ## Recommendation
 
-1. Do not install any of these as always-on skills during M14. Their core bias (commit to a distinctive aesthetic, break the grid, asymmetry, texture overlays) actively fights an established design system and the scope discipline the plan depends on.
+1. Do not install any of these as always-on skills during M014. Their core bias (commit to a distinctive aesthetic, break the grid, asymmetry, texture overlays) actively fights an established design system and the scope discipline the plan depends on.
 2. The skills that serve this work are already wired into the repo: `brainstorming` for open spike questions, `writing-plans`, `systematic-debugging`, plus the axe-core and visual-regression guard rails.
 3. If and when the micro-interaction polish pass lands, pull in `design-motion-principles` in audit mode for the motion layer, and optionally run `impeccable`'s critique over the new visual surfaces. Treat both as review lenses, not drivers.
 

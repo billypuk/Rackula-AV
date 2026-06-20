@@ -1,6 +1,6 @@
 # Spike #571: JSON Schema Publishing Readiness
 
-**Date:** 2026-06-13 **Parent Epic:** #570 (Developer-Friendly Data Format) **Milestone:** M03 -- Data Format & Interop **Type:** Readiness assessment (issue is a feature, researched on request before committing to publish)
+**Date:** 2026-06-13 **Parent Epic:** #570 (Developer-Friendly Data Format) **Milestone:** M003 -- Data Format & Interop **Type:** Readiness assessment (issue is a feature, researched on request before committing to publish)
 
 ---
 
@@ -10,7 +10,7 @@ Verdict: not ready to publish yet. The mechanism is in place, but the schema sha
 
 The good news is the hard parts are already solved. Zod 4.4.3 ships a native `z.toJSONSchema()`, so no new dependency is needed (the issue's `zod-to-json-schema` recommendation is superseded). The versioning policy is decided and documented in `docs/reference/SCHEMA.md` (#1113): one schema per MAJOR, an owned `$id` (`schemas.racku.la/layout/v{MAJOR}.json`), and `metadata.schema_version` as the authoritative offline gate that readers check instead of fetching a URL.
 
-The blocker is timing. Issue #2158 (carrier-first sub-U, an OPEN epic in M03, the same milestone as #571) deletes the `slot_position` pathway and reshapes layout positioning. Publishing `v1.json` from today's Zod schema would ship an artifact that goes stale the moment #2158 lands. The issue's own alignment audit already reached this conclusion ("publish AFTER #2158's schema bump"). Two supporting gaps also need closing: the runtime version-rejection gate (#2205, OPEN, M03) is documented but not implemented, and nothing in CI asserts that writers always emit `schema_version`.
+The blocker is timing. Issue #2158 (carrier-first sub-U, an OPEN epic in M003, the same milestone as #571) deletes the `slot_position` pathway and reshapes layout positioning. Publishing `v1.json` from today's Zod schema would ship an artifact that goes stale the moment #2158 lands. The issue's own alignment audit already reached this conclusion ("publish AFTER #2158's schema bump"). Two supporting gaps also need closing: the runtime version-rejection gate (#2205, OPEN, M003) is documented but not implemented, and nothing in CI asserts that writers always emit `schema_version`.
 
 Decision taken (2026-06-13): gate #571 on #2158, and decompose the publishing work into scoped sub-issues that become actionable once the schema shape stabilizes.
 
@@ -41,7 +41,7 @@ This confirms the issue's "~80% validation" framing. JSON Schema will catch miss
 
 `metadata.schema_version` is a flat `z.string()` (`src/lib/schemas/index.ts:753`), currently `"1.0"`, written on every save (`serialization.ts:27`, `archive.ts:250/699/730`, `yaml.ts:310`).
 
-What is missing: the reader does not reject a newer MAJOR. There is no `doc.major > app.major` check at the ingress, so opening a future-version file silently proceeds and risks data loss. This gate is the entire content of #2205 (OPEN, M03). It is the offline mechanism the whole versioning policy depends on, and it should land before or alongside the first published schema.
+What is missing: the reader does not reject a newer MAJOR. There is no `doc.major > app.major` check at the ingress, so opening a future-version file silently proceeds and risks data loss. This gate is the entire content of #2205 (OPEN, M003). It is the offline mechanism the whole versioning policy depends on, and it should land before or alongside the first published schema.
 
 ### No CI guarantee that schema_version is emitted
 
@@ -51,9 +51,9 @@ Writers default to `"1.0"`, but no test asserts that serialized output actually 
 
 ## In-Flight Schema Changes (the timing blocker)
 
-### #2158 carrier-first sub-U (OPEN epic, M03)
+### #2158 carrier-first sub-U (OPEN epic, M003)
 
-Spec: `docs/superpowers/specs/2026-06-12-carrier-first-sub-u-design.md` (approved, in the #2158 worktree, not yet on main). The M03 implementation:
+Spec: `docs/superpowers/specs/2026-06-12-carrier-first-sub-u-design.md` (approved, in the #2158 worktree, not yet on main). The M003 implementation:
 
 - Removes `PlacedDevice.slot_position` and its left/right pair-keeping pathway.
 - Changes position validation (integer-only for rack-level devices).
@@ -77,15 +77,15 @@ Additive (embedded image fields), stays at `schema_version` "1.0". Not a blocker
 
 ## Readiness Blockers (summary)
 
-1. Schema shape unstable: #2158 (M03) deletes `slot_position` and reshapes positioning. Publish after it merges. (Sequencing decision: gate #571 on #2158.)
-2. No runtime version gate: #2205 (M03) documented but not implemented. Land before first publish.
+1. Schema shape unstable: #2158 (M003) deletes `slot_position` and reshapes positioning. Publish after it merges. (Sequencing decision: gate #571 on #2158.)
+2. No runtime version gate: #2205 (M003) documented but not implemented. Land before first publish.
 3. No CI assertion that `schema_version` is always emitted. Add a serialization test.
 
 ---
 
 ## Recommendation and Path Forward
 
-Keep #571 as the tracking parent under epic #570. Gate it on #2158. Once the M03 schema churn settles, the publishing work is small and well-defined:
+Keep #571 as the tracking parent under epic #570. Gate it on #2158. Once the M003 schema churn settles, the publishing work is small and well-defined:
 
 1. Generation script using Zod 4 native `z.toJSONSchema()` plus a committed `static/schemas/layout-v1.json` artifact.
 2. CI sync check (regenerate and diff against the committed artifact) plus the `schema_version`-always-emitted assertion.

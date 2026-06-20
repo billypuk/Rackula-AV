@@ -13,7 +13,7 @@
 
 The project has the foundational schema versioning policy and Zod 4 native JSON Schema support, but three critical blockers prevent publishing:
 
-1. **Carrier-first schema redesign (issue #2158)** is pending in a worktree with approved specs but not yet merged to main. Publishing now ships a layout schema that will become stale/incompatible on M03.
+1. **Carrier-first schema redesign (issue #2158)** is pending in a worktree with approved specs but not yet merged to main. Publishing now ships a layout schema that will become stale/incompatible on M003.
 2. **Missing rejection gate for newer-MAJOR schema versions (#2205)** is tracked as follow-up work. The policy exists (SCHEMA.md) but is not enforced at runtime.
 3. **No CI assertion for `schema_version` in serialized output.** Writers default to `"1.0"` but a test does not pin this, allowing future writers to accidentally omit it.
 
@@ -146,9 +146,9 @@ From the spec (sections "Data model" and "Changes"):
 - `PlacedDeviceSchema.position` validation changes: currently accepts any number >= 0.5; will enforce integer-only for rack-level devices
 - `DeviceTypeSchema` constraint added: if `u_height < 1` or non-integer, device is rejected if not a container (currently no such validation)
 
-**Timeline:** Specs approved 2026-06-12. Both #2158 and this issue (#571) sit in M03 (Data Format & Interop), so the schema reshape and the schema publish land in the same milestone. That is exactly why #571 is gated on #2158.
+**Timeline:** Specs approved 2026-06-12. Both #2158 and this issue (#571) sit in M003 (Data Format & Interop), so the schema reshape and the schema publish land in the same milestone. That is exactly why #571 is gated on #2158.
 
-**Conclusion:** Publishing a schema now for v1.0 captures the current state. M03's schema will either be v1.1 (additive) or v2.0 (breaking). If breaking, the v1.0 schema becomes legacy. If additive (the design adds new fields but preserves existing ones), it stays v1.1 and old editors continue working on v1.0 files.
+**Conclusion:** Publishing a schema now for v1.0 captures the current state. M003's schema will either be v1.1 (additive) or v2.0 (breaking). If breaking, the v1.0 schema becomes legacy. If additive (the design adds new fields but preserves existing ones), it stays v1.1 and old editors continue working on v1.0 files.
 
 ### Issue #617: Images in YAML
 
@@ -282,21 +282,21 @@ From `CLAUDE.md` (lines 555–567):
 
 ## Readiness Blockers
 
-### Blocker 1: Carrier-First Schema Change (M03 Pending)
+### Blocker 1: Carrier-First Schema Change (M003 Pending)
 
 **Issue:** #2158 (carrier-first sub-U design)
 
-**Impact:** Publishing v1.0 schema now captures the current state. When M03 ships, the schema changes (removes `slot_position`, enforces integer U positions, adds container-only rules). This is a MAJOR version bump (schema v2.0). Any published v1.0 schema becomes immediately stale.
+**Impact:** Publishing v1.0 schema now captures the current state. When M003 ships, the schema changes (removes `slot_position`, enforces integer U positions, adds container-only rules). This is a MAJOR version bump (schema v2.0). Any published v1.0 schema becomes immediately stale.
 
-**Risk:** Users download the v1.0 schema, configure editors for it, then M03 ships and their editors show incorrect validation errors on any file using the new structure.
+**Risk:** Users download the v1.0 schema, configure editors for it, then M003 ships and their editors show incorrect validation errors on any file using the new structure.
 
 **Resolution options:**
 
-1. Wait for M03 (#2158 merge), publish v2.0 as the first published version
-2. Publish v1.0 now with prominent deprecation notice: "This schema is for layouts made before M03; v2.0 will be published in July 2026"
-3. Hold off on publishing until M03 lands
+1. Wait for M003 (#2158 merge), publish v2.0 as the first published version
+2. Publish v1.0 now with prominent deprecation notice: "This schema is for layouts made before M003; v2.0 will be published in July 2026"
+3. Hold off on publishing until M003 lands
 
-**Recommendation:** Hold off on publishing until #2158 ships. Publishable schema requires stable schema definition, and #2158 is actively scheduled (per spike-1113, it's the "next" milestone after M02).
+**Recommendation:** Hold off on publishing until #2158 ships. Publishable schema requires stable schema definition, and #2158 is actively scheduled (per spike-1113, it's the "next" milestone after M002).
 
 ### Blocker 2: Missing Runtime Rejection Gate (#2205)
 
@@ -368,7 +368,7 @@ Codify the five-point check (remove/rename/retype/require/redefine => MAJOR) int
 | **CI schema assertion** | Not implemented | Missing test for "always emit schema_version" |
 | **Static hosting** | Ready | `static/schemas/` can serve v1.json |
 | **YAML comment integration** | Not implemented | Feasible; low-priority |
-| **#2158 carrier-first impact** | MAJOR blocker | Will invalidate v1.0 schema in M03 |
+| **#2158 carrier-first impact** | MAJOR blocker | Will invalidate v1.0 schema in M003 |
 
 ---
 
@@ -378,13 +378,13 @@ Codify the five-point check (remove/rename/retype/require/redefine => MAJOR) int
 
 **Three critical blockers must be resolved:**
 
-1. **Stabilize the schema (resolve #2158)** or explicitly acknowledge that v1.0 is pre-M03 and v2.0 will ship in July 2026
+1. **Stabilize the schema (resolve #2158)** or explicitly acknowledge that v1.0 is pre-M003 and v2.0 will ship in July 2026
 2. **Implement the version rejection gate (#2205)** so files from newer Rackula versions are rejected, not silently corrupted
 3. **Add CI assertion** that `schema_version` is always emitted in serialized output
 
 **Recommended next steps (priority order):**
 
-1. Complete #2158 (carrier-first) or make a firm decision to publish v1.0 as pre-M03 with a deprecation timeline
+1. Complete #2158 (carrier-first) or make a firm decision to publish v1.0 as pre-M003 with a deprecation timeline
 2. Implement #2205 (version gate) — low effort, unblocks publishing
 3. Add CI assertion for `schema_version` — trivial test
 4. Generate schema via native Zod 4 `toJSONSchema()` method

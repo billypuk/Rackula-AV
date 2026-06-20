@@ -597,7 +597,7 @@ Headers (typical web hardening):
 - Type: `ct` (LXC container)
 - Updateable: true
 - Privileged: false (unprivileged container)
-- ARM64: yes
+- ARM064: yes
 - Interface port: 80 (reverse proxy maps to this)
 - Default OS: Debian 13
 - Min resources: 1 CPU, 512 MB RAM, 8 GB disk

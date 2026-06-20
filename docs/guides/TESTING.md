@@ -442,7 +442,7 @@ await expect(paletteItemByName(page, "Test Server")).toBeVisible();
 
 #### Multi-context tests (twin-tab, restore)
 
-The M14 shell adds layout tabs (#2079), so some flows need more than one page on the same origin: the twin-tab guard (#2044) and lazy tab restore (#2080). The `e2e/helpers/multi-context.ts` helpers wrap that: `openSecondTab` opens a second page in the same browser context (shared localStorage and `storage` events), `collectStorageEvents` records the cross-tab events the guard reacts to, and `snapshotStorage` captures `storageState` so a relaunch can be modelled with a fresh context. See `e2e/multi-context.spec.ts` for worked examples.
+The M014 shell adds layout tabs (#2079), so some flows need more than one page on the same origin: the twin-tab guard (#2044) and lazy tab restore (#2080). The `e2e/helpers/multi-context.ts` helpers wrap that: `openSecondTab` opens a second page in the same browser context (shared localStorage and `storage` events), `collectStorageEvents` records the cross-tab events the guard reacts to, and `snapshotStorage` captures `storageState` so a relaunch can be modelled with a fresh context. See `e2e/multi-context.spec.ts` for worked examples.
 
 The full carry-over audit, naming convention for new testids, the multi-context harness design, and the per-slice rewrite-or-delete decisions live in [`docs/research/spike-2183-e2e-shell-strategy.md`](../research/spike-2183-e2e-shell-strategy.md).
 
@@ -585,7 +585,7 @@ The budget lives in `performance-budget.json`:
 | `headroom`       | Room each entry may grow over its baseline before failing |
 | `toleranceBytes` | Extra slack absorbing minifier and dependency noise       |
 
-The enforced threshold for an entry is `baseline + headroom`; a build fails only when a measurement exceeds that threshold by more than `toleranceBytes`. The recorded baseline is the initial-load graph measured before the M14 shell work (`initialJs` ~321 KiB, `initialCss` ~23 KiB, `initialTotal` ~345 KiB gzipped). Headroom (`initialJs` ~30 KiB, `initialCss` ~8 KiB) is deliberate: it lets the shell grow within a known envelope while still catching a runaway regression. The decision logic lives in `src/lib/utils/bundle-budget.ts` and is unit tested in `src/tests/bundle-budget.test.ts`.
+The enforced threshold for an entry is `baseline + headroom`; a build fails only when a measurement exceeds that threshold by more than `toleranceBytes`. The recorded baseline is the initial-load graph measured before the M014 shell work (`initialJs` ~321 KiB, `initialCss` ~23 KiB, `initialTotal` ~345 KiB gzipped). Headroom (`initialJs` ~30 KiB, `initialCss` ~8 KiB) is deliberate: it lets the shell grow within a known envelope while still catching a runaway regression. The decision logic lives in `src/lib/utils/bundle-budget.ts` and is unit tested in `src/tests/bundle-budget.test.ts`.
 
 When a shell slice legitimately grows the bundle past budget, justify the growth in the PR and rebaseline:
 
@@ -646,7 +646,7 @@ Save and load are user-facing workflows where a silent format change can lose da
 
 When changing the serializer (`src/lib/utils/yaml.ts`), the archive reader (`src/lib/utils/archive.ts`), or the legacy adapter (`src/lib/storage/adapt-legacy-layout.ts`), run these first. They drive the public load entrypoint with the byte shapes the export path and older builds produce, so a dropped section fails loudly.
 
-The git-sync half of #1114 (happy path, auth/network/missing-file failures, baseline conflicts) is out of scope until sync code exists; it is tracked against #627 in M08.
+The git-sync half of #1114 (happy path, auth/network/missing-file failures, baseline conflicts) is out of scope until sync code exists; it is tracked against #627 in M008.
 
 ### Low-Value Tests (Write Fewer or None)
 

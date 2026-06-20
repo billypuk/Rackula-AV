@@ -1,6 +1,6 @@
 # Mobile UX Design
 
-Status: Draft for review Date: 2026-06-18 Milestone: M12 -- Mobile & Touch UX Supersedes: the prior `Epic: Mobile Phone Experience` (#1044, closed without a usable result)
+Status: Draft for review Date: 2026-06-18 Milestone: M012 -- Mobile & Touch UX Supersedes: the prior `Epic: Mobile Phone Experience` (#1044, closed without a usable result)
 
 ## Context
 
@@ -97,7 +97,7 @@ Mobile is detected at the 1024px breakpoint (`viewport.svelte.ts:6`). First-run 
 - Moderate editing: near-free. The move fix is roughly 30 minutes; adding flip, duplicate, and notes to the sheet is a few hours.
 - The one real editing gap is placement feedback during tap-to-place.
 
-## Decomposition (M12 epic plus children)
+## Decomposition (M012 epic plus children)
 
 Bugs (independent of the redesign, fix now):
 

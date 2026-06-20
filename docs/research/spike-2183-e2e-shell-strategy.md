@@ -1,20 +1,20 @@
-# Spike #2183: E2E Strategy for the M14 Shell
+# Spike #2183: E2E Strategy for the M014 Shell
 
-Date: 2026-06-14 Parent epic: #2017 (Canvas UX Overhaul, milestone M14) Sequencing: M14 wave 0, alongside guard rails #2098 (visual), #2099 (axe), #2100 (UX standards)
+Date: 2026-06-14 Parent epic: #2017 (Canvas UX Overhaul, milestone M014) Sequencing: M014 wave 0, alongside guard rails #2098 (visual), #2099 (axe), #2100 (UX standards)
 
 ---
 
 ## Problem
 
-M04 spent real effort on E2E: data-testids on structural components (#1419), helper migration to role and testid locators (#1420), the lint rule that blocks CSS class selectors (#1423), stale-selector cleanup (#1264), and coverage (#1227, #1231). Some of that effort is written against surfaces the M14 shell deletes. #2072 reframes the top bar and #2081 removes the StartScreen, so any spec that asserts on the toolbar or the start screen needs a decision: rewrite or delete. Nothing today says which.
+M004 spent real effort on E2E: data-testids on structural components (#1419), helper migration to role and testid locators (#1420), the lint rule that blocks CSS class selectors (#1423), stale-selector cleanup (#1264), and coverage (#1227, #1231). Some of that effort is written against surfaces the M014 shell deletes. #2072 reframes the top bar and #2081 removes the StartScreen, so any spec that asserts on the toolbar or the start screen needs a decision: rewrite or delete. Nothing today says which.
 
 Two shell features also need a test capability the suite does not have. The twin-tab guard (#2044) and lazy tab restore (#2080) involve more than one page on the same origin, and no existing E2E issue plans the multi-context harness they need.
 
-This document is the strategy: which selectors and helpers carry over, the naming convention M14 slices follow as they add testids, the multi-context harness design, and the per-slice rewrite-or-delete call for the affected specs.
+This document is the strategy: which selectors and helpers carry over, the naming convention M014 slices follow as they add testids, the multi-context harness design, and the per-slice rewrite-or-delete call for the affected specs.
 
 ## Selector posture (unchanged)
 
-The project already has a sound selector strategy, documented in `docs/guides/TESTING.md` (Selector Strategy) and enforced by the lint rule from #1423. M14 does not change it. The order of preference stays:
+The project already has a sound selector strategy, documented in `docs/guides/TESTING.md` (Selector Strategy) and enforced by the lint rule from #1423. M014 does not change it. The order of preference stays:
 
 1. `getByRole()` with an accessible name. Doubles as an accessibility check.
 2. `getByLabel()` or `getByText()` for form fields and visible copy.
@@ -28,7 +28,7 @@ The shell reframe touches the top bar, the entry flow, the palette, and adds the
 
 ### Testids: carry, rename, or retire
 
-| Testid (or family) | Owner today | M14 fate |
+| Testid (or family) | Owner today | M014 fate |
 | --- | --- | --- |
 | `rack-canvas`, `rack-front`, `rack-rear` | Canvas | Carry. The canvas survives; verbs float over it. |
 | `rack-device`, `rack-drop-zone` | RackView | Carry. Device chrome is unchanged by the shell. |
@@ -43,14 +43,14 @@ The shell reframe touches the top bar, the entry flow, the palette, and adds the
 | `start-screen` | StartScreen | Retire with #2081. Specs that assert it are deleted |
 |  |  | or rewritten to the WelcomeScreen empty state. |
 | `toast-message`, `ctx-menu`, `ctx-menu-item` | Toast, ContextMenu | Carry. Both survive the shell. |
-| `mobile-bottom-nav`, `nav-tab-*` | mobile nav | Carry. Mobile shell adaptation is deferred (M12). |
+| `mobile-bottom-nav`, `nav-tab-*` | mobile nav | Carry. Mobile shell adaptation is deferred (M012). |
 | `layout-tab-{id}`, `layout-tab-close-{id}` | LayoutTabs (#2079, landed) | Carry. Already follows the parametrized convention. |
 
 The toolbar class anchors in `locators.ts` (`toolbar.root`, `toolbar.brand`, `toolbar.center`) belong to the surface #2072 reframes. They are not testids and not the preferred locator; the specs that use them are listed in the per-slice table and move to role or testid locators when #2072 lands.
 
 ### Helpers: carry, adjust, or retire
 
-| Helper file | M14 fate |
+| Helper file | M014 fate |
 | --- | --- |
 | `a11y.ts` | Carry. The axe guard rail (#2099) grows a scan per new surface. |
 | `base-test.ts` | Carry. The File System Access shim is shell-agnostic. |
@@ -66,7 +66,7 @@ The toolbar class anchors in `locators.ts` (`toolbar.root`, `toolbar.brand`, `to
 
 ## Naming convention for new testids
 
-M14 slices add surfaces. To keep the registry coherent and avoid the drift #1264 cleaned up, new testids follow the existing house style:
+M014 slices add surfaces. To keep the registry coherent and avoid the drift #1264 cleaned up, new testids follow the existing house style:
 
 - Kebab-case, lowercase, scope-prefixed by surface: `side-panel`, `app-menu`, `storage-chip`, `layout-tab-{id}`.
 - One stable id per structural anchor, parametrized by entity id where a set repeats (`layout-tab-{id}`, `layout-tab-close-{id}` is the precedent from #2079).
@@ -76,7 +76,7 @@ M14 slices add surfaces. To keep the registry coherent and avoid the drift #1264
 
 ## Palette selection: stop indexing by position
 
-`dragDeviceToRack` indexed palette items by position (`querySelectorAll(...)[deviceIndex]`). Two M14-era facts break that:
+`dragDeviceToRack` indexed palette items by position (`querySelectorAll(...)[deviceIndex]`). Two M014-era facts break that:
 
 - Virtualization (#2094, landed): the palette windows lists over 30 rows. Off-screen rows unmount, so a positional index does not map to a stable device.
 - Favourites (#2094): a pinned device renders twice, once in the favourites section and once in its category, so an index can land on either copy.

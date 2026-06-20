@@ -47,7 +47,7 @@ A second `bun add --no-save --cpu=arm64` after a `--production` install re-recon
 
 ## Verification
 
-- **Done (emulation, 2026-06-01):** built the bundle on `docker --platform linux/amd64` with `bun install --frozen-lockfile --production --cpu='*' --os=linux`, tarred `node_modules`, then extracted and ran it under `docker --platform linux/arm64`. `require('@node-rs/argon2')` loaded and `hashSync`/`verifySync` executed: `ARM64_RUN true`. Confirmed no devDependencies leaked into the bundle, and both x64-gnu and arm64-gnu `.node` binaries are present. Verified against `@node-rs/argon2@2.0.2`, Bun 1.3.10. Audit confirms argon2 is the _only_ native dep (better-auth/hono/js-yaml/zod are pure JS).
+- **Done (emulation, 2026-06-01):** built the bundle on `docker --platform linux/amd64` with `bun install --frozen-lockfile --production --cpu='*' --os=linux`, tarred `node_modules`, then extracted and ran it under `docker --platform linux/arm64`. `require('@node-rs/argon2')` loaded and `hashSync`/`verifySync` executed: `ARM064_RUN true`. Confirmed no devDependencies leaked into the bundle, and both x64-gnu and arm64-gnu `.node` binaries are present. Verified against `@node-rs/argon2@2.0.2`, Bun 1.3.10. Audit confirms argon2 is the _only_ native dep (better-auth/hono/js-yaml/zod are pure JS).
 - **Final sign-off (hardware-gated):** real `curl|bash` install on an arm64 Proxmox/LXC host - same gate as #1214. Flip `var_arm64`/`has_arm` only after this passes.
 
 ## Dependencies / order

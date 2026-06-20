@@ -14,7 +14,7 @@
 
 Verified in code, not hypothetical:
 
-1. The legacy adapter must live at the SINGLE STORE INGRESS (`loadLayout`/`clearThenLoad`), NOT at `load-pipeline.ts:65`. The M14 browser-workspace lazy-restore path (`browser-launch.ts` -> `loadLayoutBody()`) and the share decode (`share.ts:356`, returns `fromMinimalLayoutV2` without a full-schema pass) both BYPASS `load-pipeline`. One chokepoint at the store ingress covers file, API, archive, share, and browser-restore.
+1. The legacy adapter must live at the SINGLE STORE INGRESS (`loadLayout`/`clearThenLoad`), NOT at `load-pipeline.ts:65`. The M014 browser-workspace lazy-restore path (`browser-launch.ts` -> `loadLayoutBody()`) and the share decode (`share.ts:356`, returns `fromMinimalLayoutV2` without a full-schema pass) both BYPASS `load-pipeline`. One chokepoint at the store ingress covers file, API, archive, share, and browser-restore.
 2. Share links cannot encode carrier children today: `MinimalDeviceSchema` (share.ts:72) has no `container_id`/`slot_id`. C2 must add container fields to the minimal schema + the v1/v2 expanders
    - carrier-type inclusion, not just bump a version string.
 3. The "stop creating invalid placements" deletions (keyboard fine-move, `moveDeviceSlot`, EditPanel half-width/fine UI) move from C5 INTO C3, so enforcement (C4) never faces a live create-path that can still produce invalid data. C5 shrinks to dead-code removal.
@@ -32,7 +32,7 @@ Verified in code, not hypothetical:
 4. Deleting dead fractional code (C5) comes after C3 + C4.
 5. C5 and C6 BOTH edit `KeyboardHandler.svelte` -> serialize them (no parallel).
 
-**This run (critical path to unblock M14):** C1 (#2289) -> {C2 (#2290), C3 (#2291)} -> C4 (#2292) -> C5 (#2294). **Deferred to their own issues:** C6 (#2295, lifecycle), C8 (#2296, NetBox), C9 (#2165, docs).
+**This run (critical path to unblock M014):** C1 (#2289) -> {C2 (#2290), C3 (#2291)} -> C4 (#2292) -> C5 (#2294). **Deferred to their own issues:** C6 (#2295, lifecycle), C8 (#2296, NetBox), C9 (#2165, docs).
 
 ---
 
@@ -122,7 +122,7 @@ Decisions locked: D1 adapter at store ingress; D2 full carrier support in share 
 
 **Deps:** C3, C4. **Risk:** medium (smaller now that create-paths left in C3). Folds in labelling.
 
-> When C5 merges, the M14 palette chain parked behind #2158 reopens: #2075 -> #2212/#2213/#2214.
+> When C5 merges, the M014 palette chain parked behind #2158 reopens: #2075 -> #2212/#2213/#2214.
 
 ---
 
@@ -130,7 +130,7 @@ Decisions locked: D1 adapter at store ingress; D2 full carrier support in share 
 
 ### C6 - Container lifecycle: cascade delete + undo, deep duplicate, child cell movement [Feature, size:M]
 
-Cascade delete container -> children with confirm; undo restores the subtree (children-snapshot pattern, `commands/device.ts` ~349-520); deep-copy container duplication; child duplicate fills next free cell (toast if full); arrow keys move a container whole-U with children and a child between cells in its container only; auto-created carriers self-remove on last-child removal (Decision 3). SERIALIZE with C5 (both touch `KeyboardHandler.svelte`). Deferred: doesn't gate the M14 unblock.
+Cascade delete container -> children with confirm; undo restores the subtree (children-snapshot pattern, `commands/device.ts` ~349-520); deep-copy container duplication; child duplicate fills next free cell (toast if full); arrow keys move a container whole-U with children and a child between cells in its container only; auto-created carriers self-remove on last-child removal (Decision 3). SERIALIZE with C5 (both touch `KeyboardHandler.svelte`). Deferred: doesn't gate the M014 unblock.
 
 ### C8 - NetBox interop: subdevice_role import + device_bays export [Feature, size:L]
 
@@ -144,4 +144,4 @@ Document the carrier-first model (whole-U rails, carriers for sub-U gear). Spec 
 
 ## Out of scope (per spec)
 
-Cross-container keyboard movement; category-based accepts whitelists; 1.5U rail mounting; stacking multiple devices in one cell. The narrow #2152 patch already shipped in M02 (commit 6e5d69a7), and C5 deletes the machinery it restored.
+Cross-container keyboard movement; category-based accepts whitelists; 1.5U rail mounting; stacking multiple devices in one cell. The narrow #2152 patch already shipped in M002 (commit 6e5d69a7), and C5 deletes the machinery it restored.

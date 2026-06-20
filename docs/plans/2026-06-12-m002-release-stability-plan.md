@@ -1,4 +1,4 @@
-# M02 -- LXC Release & Stability Execution Plan
+# M002 -- LXC Release & Stability Execution Plan
 
 > For agentic workers: execute one task per session via /dev-issue <number>. The GitHub issue body is the source of truth (each carries an Alignment audit 2026-06-12 section with binding ACs). Do not start a task whose listed blockers are open. Follow repo TDD policy (CLAUDE.md): tests only where behaviour warrants them.
 
@@ -8,38 +8,38 @@ Ship Rackula's distribution channels (Unraid CA, ProxmoxVE community-scripts fol
 
 ## Position in sequence
 
-M02 is the active milestone and runs first in the sequence M02 -> M04 -> M03 -> M14 -> M16. M15 (Storage Model & Data Safety) runs in parallel with M02 right now; its issues gate parts of Stage 2 and the contract-test work in Stage 1. Note: #728 (hero video) has moved out of M02 to M16.
+M002 is the active milestone and runs first in the sequence M002 -> M004 -> M003 -> M014 -> M016. M015 (Storage Model & Data Safety) runs in parallel with M002 right now; its issues gate parts of Stage 2 and the contract-test work in Stage 1. Note: #728 (hero video) has moved out of M002 to M016.
 
 ## Cross-milestone gates in
 
-- M15 #2037 (explicit storage mode, remove probe-and-guess) gates #2134: the { storage: "server" } config injection the dev cutover deploys is inert until #2037 lands.
-- M15 #2041 (frontend echo-based conflict handling and snapshot upload) ideally precedes #2134 so d.racku.la can exercise the conflict path end to end during soak; it also carries the client-side load-response hardening that matters for #2133's separately writable backing store.
-- M15 #2091 (TOCTOU race in pre-overwrite snapshot) is a prerequisite for the shared storage-contract test spec in #2133; do not write the contract spec around the filesystem driver's racy pre-fix behaviour.
+- M015 #2037 (explicit storage mode, remove probe-and-guess) gates #2134: the { storage: "server" } config injection the dev cutover deploys is inert until #2037 lands.
+- M015 #2041 (frontend echo-based conflict handling and snapshot upload) ideally precedes #2134 so d.racku.la can exercise the conflict path end to end during soak; it also carries the client-side load-response hardening that matters for #2133's separately writable backing store.
+- M015 #2091 (TOCTOU race in pre-overwrite snapshot) is a prerequisite for the shared storage-contract test spec in #2133; do not write the contract spec around the filesystem driver's racy pre-fix behaviour.
 - #2028 (C1a shared-source cleanup) is CLOSED and released (tags v26.6.x shipped after merge), satisfying #2029's C1a-released precondition.
 
 ## Cross-milestone gates out
 
-- Nothing in M04 or M03 hard-gates on M02; they proceed in parallel or after.
-- #2029's new user-data disposition AC protects M15's storage chip and nudge UX from misleading prod users during the static-only transition; M15 messaging assumes that plan exists.
-- #2159 hands the durable slot_width data to M03 #2158 (carrier-first epic); the placement outcome is model-agnostic so #2158 is not blocked.
-- External listings (#2142 ProxmoxVE catalogue, #2013 Unraid CA) complete on third-party timelines after M02 closes.
+- Nothing in M004 or M003 hard-gates on M002; they proceed in parallel or after.
+- #2029's new user-data disposition AC protects M015's storage chip and nudge UX from misleading prod users during the static-only transition; M015 messaging assumes that plan exists.
+- #2159 hands the durable slot_width data to M003 #2158 (carrier-first epic); the placement outcome is model-agnostic so #2158 is not blocked.
+- External listings (#2142 ProxmoxVE catalogue, #2013 Unraid CA) complete on third-party timelines after M002 closes.
 
 ## Stage 1: Distribution and parity groundwork (parallel, start now)
 
 ### Task: #2133 feat: Workers entry + CF storage driver for rackula-api
 
-Blockers: none for the driver extraction and Workers entry (former blocker #2132 is closed); M15 #2091 gates only the shared contract-test spec, which must encode the post-fix atomic snapshot-on-mismatch behaviour.
+Blockers: none for the driver extraction and Workers entry (former blocker #2132 is closed); M015 #2091 gates only the shared contract-test spec, which must encode the post-fix atomic snapshot-on-mismatch behaviour.
 
 Why this position: the storage-driver seam and CF driver are the implementation prerequisite for the Stage 2 dev cutover (#2134) and are startable immediately.
 
-Scope: extract a storage-driver interface from api/src/storage/ (filesystem.ts, quota.ts; assets.ts stays filesystem-only) and inject per-request so routes stop importing filesystem free functions directly. Restructure auth imports so the Workers entry never statically reaches api/src/local-auth.ts or api/src/auth/config.ts (argon2 is build-time fatal in a Workers bundle). Implement the CF driver (layouts CRUD, snapshots, quota) with the audit-promoted ACs: R2 conditional PUT (onlyIf: { etagMatches }) with re-read + snapshot + retry on mismatch, snapshot prune to 5 per layout via prefix + uploaded sort, quota via prefix count. Both drivers pass the shared contract suite (runStorageContract, created by M15 #2091; extend it with CF-driver cases) including the atomic snapshot-on-mismatch test; self-host Bun path stays untouched.
+Scope: extract a storage-driver interface from api/src/storage/ (filesystem.ts, quota.ts; assets.ts stays filesystem-only) and inject per-request so routes stop importing filesystem free functions directly. Restructure auth imports so the Workers entry never statically reaches api/src/local-auth.ts or api/src/auth/config.ts (argon2 is build-time fatal in a Workers bundle). Implement the CF driver (layouts CRUD, snapshots, quota) with the audit-promoted ACs: R2 conditional PUT (onlyIf: { etagMatches }) with re-read + snapshot + retry on mismatch, snapshot prune to 5 per layout via prefix + uploaded sort, quota via prefix count. Both drivers pass the shared contract suite (runStorageContract, created by M015 #2091; extend it with CF-driver cases) including the atomic snapshot-on-mismatch test; self-host Bun path stays untouched.
 
 Key files: api/src/storage/filesystem.ts, api/src/storage/quota.ts, api/src/storage/assets.ts, api/src/storage/filesystem.test.ts, api/src/local-auth.ts, api/src/auth/config.ts, api/src/app.ts, api/src/index.ts
 
 Verify: cd api && bun test; cd api && bun run typecheck; npm run lint; Workers entry build emits no argon2 in the bundle (assert with a grep on the build output); CI green on the PR.
 
 - [ ] Done when: Workers entry builds without argon2 in the bundle; storage-driver interface extracted; filesystem behaviour unchanged; CI green.
-- [ ] After M15 #2091 lands: CF driver and filesystem driver both pass the shared contract suite (runStorageContract), including atomic snapshot-on-mismatch.
+- [ ] After M015 #2091 lands: CF driver and filesystem driver both pass the shared contract suite (runStorageContract), including atomic snapshot-on-mismatch.
 
 ### Task: #2159 fix: audit MikroTik brand pack widths and set slot_width on half-width models
 
@@ -59,7 +59,7 @@ Verify: npm run test:run; npm run lint; npm run build; manual check in npm run d
 
 Blockers: none (upstream PR #1897 merged 2026-06-12). Coordinate with #2065: push both upstream ProxmoxVED changes as one follow-up PR, not two.
 
-Why this position: the in-repo change (PR #2051) already shipped; the upstream copy drifts until mirrored, and LXC installs from upstream would flip to browser mode once M15 #2037 lands.
+Why this position: the in-repo change (PR #2051) already shipped; the upstream copy drifts until mirrored, and LXC installs from upstream would flip to browser mode once M015 #2037 lands.
 
 Scope: mirror the server-mode config.js writing in deploy/lxc/community-scripts/install/rackula-install.sh and the rewrite step in deploy/lxc/community-scripts/ct/rackula.sh to the fork ggfevans/ProxmoxVED, then open or update one upstream follow-up PR batched with #2065's install-script change.
 
@@ -125,11 +125,11 @@ Verify: docker compose --profile persist up -d; curl -v "http://localhost:8080/a
 
 - [ ] Done when: query-string preservation is tested for GET and PUT through the proxy, the expected behaviour is documented in the nginx config, and any needed explicit handling is applied.
 
-## Stage 2: Dev cutover and previews (gated on M15 #2037, ideally #2041)
+## Stage 2: Dev cutover and previews (gated on M015 #2037, ideally #2041)
 
 ### Task: #2134 feat: dev cutover: d.racku.la re-point + deploy-dev rewrite
 
-Blockers: #2133 (implementation), M15 #2037 (config injection is inert until it lands; per the audit, land after #2037 and ideally after #2041 so the soak observes deterministic server mode and the conflict path).
+Blockers: #2133 (implementation), M015 #2037 (config injection is inert until it lands; per the audit, land after #2037 and ideally after #2041 so the soak observes deterministic server mode and the conflict path).
 
 Why this position: this is the dev half of the VPS exit and the proving ground for the one-contract-two-runtimes API; it cannot meaningfully soak until the frontend reads explicit storage mode.
 
@@ -309,7 +309,7 @@ Verify: SVGs render correctly at 512x512 in light and dark contexts; upstream PR
 
 Milestone close-out checklist:
 
-- [ ] All M02 issues closed except the waiting-external items (#2142, #2053, #2013) and their parent epics (#2008, #2054), which close when their externals land (check: gh issue list --milestone "M02 -- LXC Release & Stability" --state open returns only those five)
+- [ ] All M002 issues closed except the waiting-external items (#2142, #2053, #2013) and their parent epics (#2008, #2054), which close when their externals land (check: gh issue list --milestone "M002 -- LXC Release & Stability" --state open returns only those five)
 - [ ] Epic #1984 closed: count.racku.la on Workers Static Assets, headers verified by value, self-host builds unchanged (login.html present, beacon-free, three CSPs CI-guarded), analytics live, previews exist
 - [ ] Epic #1985 closed: d.racku.la full stack on Workers, Access verified, smoke green via service token
 - [ ] Epic #1983 closed: VPS destroyed, billing cancelled, no workflow or DNS reference remains

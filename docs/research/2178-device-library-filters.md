@@ -1,6 +1,6 @@
 # Spike #2178: Attribute Filters for the Device Library
 
-**Date:** 2026-06-12 **Milestone:** M07 -- Device Library & Image System **Status:** Complete
+**Date:** 2026-06-12 **Milestone:** M007 -- Device Library & Image System **Status:** Complete
 
 ## Research Question
 

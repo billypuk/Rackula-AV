@@ -35,7 +35,7 @@ Milestone titles become `M{N} -- {Theme}` with no version suffix. Version is det
 
 ## What Stays
 
-- M-numbering for sequence (M01, M02, M03, M04)
+- M-numbering for sequence (M001, M002, M003, M004)
 - CalVer for releases (v26.6.0, v26.8.1, etc.)
 - Thematic naming (descriptive part of milestone titles)
 - Milestone scope (~10-15 issues per milestone)
@@ -46,10 +46,10 @@ Milestone titles become `M{N} -- {Theme}` with no version suffix. Version is det
 
 | Current | Proposed |
 | --- | --- |
-| M01 -- LXC Build & Hardening, v26.5.x | M01 -- LXC Build & Hardening |
-| M02 -- LXC Release & Stability, v26.6.x | M02 -- LXC Release & Stability |
-| M03 -- Data Format & Interop, v26.7.x | M03 -- Data Format & Interop |
-| M04 -- Type Safety, Decomposition & Stability | M04 -- Type Safety, Decomposition & Stability |
+| M001 -- LXC Build & Hardening, v26.5.x | M001 -- LXC Build & Hardening |
+| M002 -- LXC Release & Stability, v26.6.x | M002 -- LXC Release & Stability |
+| M003 -- Data Format & Interop, v26.7.x | M003 -- Data Format & Interop |
+| M004 -- Type Safety, Decomposition & Stability | M004 -- Type Safety, Decomposition & Stability |
 
 ## Roadmap Diff (Conceptual)
 
@@ -58,13 +58,13 @@ Milestone titles become `M{N} -- {Theme}` with no version suffix. Version is det
 ```markdown
 ## Current Plan -- Next 4 Sprints
 
-### 🟢 M01 -- LXC Build & Hardening · ~June (`v26.6.x`)
+### 🟢 M001 -- LXC Build & Hardening · ~June (`v26.6.x`)
 
-### 🟡 M02 -- LXC Release & Stability · ~July (`v26.7.x`)
+### 🟡 M002 -- LXC Release & Stability · ~July (`v26.7.x`)
 
-### 🔵 M03 -- Data Format & Interop · ~Aug (`v26.8.x`)
+### 🔵 M003 -- Data Format & Interop · ~Aug (`v26.8.x`)
 
-### 🔴 M04 -- Type Safety, Decomposition & Stability · ~September (`v26.9.x`)
+### 🔴 M004 -- Type Safety, Decomposition & Stability · ~September (`v26.9.x`)
 ```
 
 **After:**
@@ -72,13 +72,13 @@ Milestone titles become `M{N} -- {Theme}` with no version suffix. Version is det
 ```markdown
 ## Active Plan
 
-### ✅ M01 -- LXC Build & Hardening (complete)
+### ✅ M001 -- LXC Build & Hardening (complete)
 
-### 🟡 M02 -- LXC Release & Stability (in progress)
+### 🟡 M002 -- LXC Release & Stability (in progress)
 
-### 🔵 M03 -- Data Format & Interop (next)
+### 🔵 M003 -- Data Format & Interop (next)
 
-### 🔴 M04 -- Type Safety, Decomposition & Stability (planned)
+### 🔴 M004 -- Type Safety, Decomposition & Stability (planned)
 ```
 
 ## CLAUDE.md Impact

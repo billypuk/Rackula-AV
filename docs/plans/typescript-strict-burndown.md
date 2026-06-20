@@ -1,6 +1,6 @@
 # TypeScript Strict Mode Burndown
 
-> Baseline created: 2026-05-19 Issue: #1609 Milestone: [M04 -- Type Safety, Decomposition & Stability](https://github.com/RackulaLives/Rackula/milestone/24) (`v26.9.x`, ~September 2026) Config: `strict: true`, `noUnusedLocals: true`, `noUnusedParameters: true`, `noUncheckedIndexedAccess: true`
+> Baseline created: 2026-05-19 Issue: #1609 Milestone: [M004 -- Type Safety, Decomposition & Stability](https://github.com/RackulaLives/Rackula/milestone/24) (`v26.9.x`, ~September 2026) Config: `strict: true`, `noUnusedLocals: true`, `noUnusedParameters: true`, `noUncheckedIndexedAccess: true`
 
 ## Summary
 

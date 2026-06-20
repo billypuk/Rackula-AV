@@ -1,6 +1,6 @@
 # Spike #2018: Tabs Interaction Model
 
-Date: 2026-06-14 Parent epic: #2017 (Canvas UX Overhaul, milestone M14) Spec: `docs/superpowers/specs/2026-06-09-canvas-ux-overhaul-design.md` Research inputs: `2018-codebase.md`, `2018-external.md`, `2018-patterns.md`
+Date: 2026-06-14 Parent epic: #2017 (Canvas UX Overhaul, milestone M014) Spec: `docs/superpowers/specs/2026-06-09-canvas-ux-overhaul-design.md` Research inputs: `2018-codebase.md`, `2018-external.md`, `2018-patterns.md`
 
 ---
 

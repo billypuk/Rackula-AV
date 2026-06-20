@@ -1,6 +1,6 @@
 # Spike #2186: Share-link schema versioning and shortened-link compatibility
 
-**Date:** 2026-06-15 **Milestone:** M03 -- Data Format & Interop **Parent policy:** [spike #1113](spike-1113-schema-versioning-policy.md), [docs/reference/SCHEMA.md](../reference/SCHEMA.md) **Related:** #2158 (carrier-first epic), #2205 (reject-newer-major gate), #571 (publish JSON Schema), #820 (M08 shortener) **Status:** Research deliverable. Contains points that need a maintainer decision (flagged inline).
+**Date:** 2026-06-15 **Milestone:** M003 -- Data Format & Interop **Parent policy:** [spike #1113](spike-1113-schema-versioning-policy.md), [docs/reference/SCHEMA.md](../reference/SCHEMA.md) **Related:** #2158 (carrier-first epic), #2205 (reject-newer-major gate), #571 (publish JSON Schema), #820 (M008 shortener) **Status:** Research deliverable. Contains points that need a maintainer decision (flagged inline).
 
 ---
 
@@ -37,7 +37,7 @@ Consequence: a pre-bump (`1.0`-era) share link, including one that still encodes
 
 ## 3. Options for pre-bump share links once the format goes MAJOR "2.0"
 
-The question: when `schema_version` becomes `2.0` (carrier-first), what should happen to a share link generated before the bump (a `1.0`-era URL, or a `1.0`-era full URL stored by the M08 shortener)?
+The question: when `schema_version` becomes `2.0` (carrier-first), what should happen to a share link generated before the bump (a `1.0`-era URL, or a `1.0`-era full URL stored by the M008 shortener)?
 
 ### Option (a): open via the #2158 import adapter (transparent upgrade)
 
@@ -45,7 +45,7 @@ The shared URL decodes, the adapter snaps and wraps legacy placements to carrier
 
 - Interaction with the adapter: this is what happens today. No new code. The adapter is the migration from the previous MAJOR. Idempotent, so a `2.0`-era link also passes through cleanly.
 - Interaction with the reject-newer-major gate (#2205): the gate rejects only documents with a major NEWER than the running app. A `1.0` link opened by a `2.0`-capable app is an OLDER major, which the #1113 reader rule says to "load and migrate," not reject. So (a) is consistent with the gate: old links migrate, they are never rejected.
-- Interaction with the M08 shortener (#820): the shortener stores the full URL string verbatim with a one-year TTL and 301-redirects to it. It is an opaque key/value store; it does not parse or re-encode the payload. A shortened `1.0`-era link redirects to the same `?l=` payload, which the app then decodes and adapts exactly like a direct link. So (a) needs nothing from the shortener: persisted old links keep working as long as the adapter understands their placement model.
+- Interaction with the M008 shortener (#820): the shortener stores the full URL string verbatim with a one-year TTL and 301-redirects to it. It is an opaque key/value store; it does not parse or re-encode the payload. A shortened `1.0`-era link redirects to the same `?l=` payload, which the app then decodes and adapts exactly like a direct link. So (a) needs nothing from the shortener: persisted old links keep working as long as the adapter understands their placement model.
 
 ### Option (b): versioned error / reject
 
@@ -107,7 +107,7 @@ Input for the compatibility matrix recorded on #1113. Every schema read surface 
 | Snapshot restore (#2042) | `restoreFromSnapshot` -> `loadSnapshot` -> `finalizeLayoutLoad` | Yes (snapshot is layout YAML) | Routes through the validated pipeline | Same gate as file/server when restored |
 | localStorage working copy | `src/lib/storage/working-copy.ts` | No version read; unvalidated | Not gated (open door, #2206) | Same-build session state; not a cross-version vector but real debt |
 | Share link (`?l=`) | `src/lib/utils/share.ts` decode | No data-schema version (`fv` is share-encoding only) | Not gated; runs through the carrier-first adapter at store ingress | THIS spike: add `sv` (deliverable 2); rely on the adapter for old links (deliverable 1) |
-| Shortened link (#820, M08) | Cloudflare Worker KV -> 301 redirect to `?l=` | No (opaque store of the full URL string) | Inherits the share-link surface after redirect | Persists `1.0`-era links for up to a year; depends on the adapter staying able to read them |
+| Shortened link (#820, M008) | Cloudflare Worker KV -> 301 redirect to `?l=` | No (opaque store of the full URL string) | Inherits the share-link surface after redirect | Persists `1.0`-era links for up to a year; depends on the adapter staying able to read them |
 
 Where share links fit: they are a non-primary read surface that bypasses the file/server Zod ingress and instead reaches the store directly, where the carrier-first adapter normalizes them. They are the one read surface that both lacks a data-schema marker and is persisted externally (via the shortener), which is why this spike recommends adding the marker (so the forward-compat reject case is detectable) while keeping the adapter as the read path for old links (so persisted links keep working).
 
@@ -118,7 +118,7 @@ Locked by this spike (consistent with #1113 and #2158):
 1. Pre-bump share links open via the import adapter (transparent upgrade), option (a). Do not reject or expire readable old links.
 2. The share payload should gain an optional data-schema-version marker (`sv`), separate from `fv` and `v`, kept optional so existing URLs decode.
 3. The reject case for share links is the forward direction only (a NEWER-major link opened by an OLDER app), handled by the `sv` marker plus the #2205 gate logic, never by rejecting older links.
-4. The M08 shortener (#820) needs no schema awareness: it is an opaque URL store and inherits the share-link read behaviour after redirect. Its existing one-year TTL is the only expiry; no schema-driven expiry.
+4. The M008 shortener (#820) needs no schema awareness: it is an opaque URL store and inherits the share-link read behaviour after redirect. Its existing one-year TTL is the only expiry; no schema-driven expiry.
 
 Maintainer-decision points (all coupled to the held `1.0` -> `2.0` bump):
 

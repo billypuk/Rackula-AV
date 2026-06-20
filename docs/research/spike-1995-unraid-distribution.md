@@ -1,6 +1,6 @@
 # Spike #1995: Unraid distribution architecture (Community App vs Plugin)
 
-**Date:** 2026-06-08 **Milestone:** M02 -- LXC Release & Stability **Feeds:** #1317 (Submit Rackula as Unraid Community App) **Status:** Complete
+**Date:** 2026-06-08 **Milestone:** M002 -- LXC Release & Stability **Feeds:** #1317 (Submit Rackula as Unraid Community App) **Status:** Complete
 
 Research files:
 

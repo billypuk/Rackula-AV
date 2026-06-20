@@ -9,7 +9,7 @@
 | Library | Bundle Size (min+gzip) | Zero Dependencies | Index Required | Dynamic Add/Remove | Key Features |
 | --- | --- | --- | --- | --- | --- |
 | **Fuse.js** | ~6.7 kB | Yes | No | N/A (no index) | Fuzzy matching, weighted fields, Bitap algorithm, typo tolerance |
-| **MiniSearch** | ~8 kB | Yes | Yes | Yes | Full-text search, prefix/fuzzy, field boosting, BM25 ranking |
+| **MiniSearch** | ~8 kB | Yes | Yes | Yes | Full-text search, prefix/fuzzy, field boosting, BM025 ranking |
 | **FlexSearch** | ~6-22 kB\* | Yes | Yes | Yes | Contextual search, web workers, phonetic matching, fastest performance |
 | **Lunr.js** | ~8.5 kB | Yes | Yes | No | Stemming, language support, TF-IDF, similar to Solr |
 | **uFuzzy** | ~4.2 kB | Yes | No | N/A | Micro-sized, fastest for fuzzy, precise fuzziness control |
@@ -50,7 +50,7 @@
 #### MiniSearch
 
 - **Best for:** Memory-constrained environments, mobile browsers, real-time "as-you-type" search
-- **Algorithm:** Inverted index with BM25 ranking
+- **Algorithm:** Inverted index with BM025 ranking
 - **Strengths:**
   - Memory-efficient index design
   - Documents can be added/removed dynamically

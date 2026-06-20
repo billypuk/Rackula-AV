@@ -59,7 +59,7 @@ Backward migrations run at the validated ingress (`parseLayoutYaml` -> `LayoutSc
 The reject-newer-major check belongs at the shared Zod chokepoint (`LayoutSchema` / `parseLayoutYaml`), which covers **file load and server GET (primary ingress)**. Two doors are NOT gated today and are tracked open, not silently assumed closed:
 
 - **localStorage working copy** is unvalidated (bypasses the gate). Real debt, but NOT a #617 blocker: it is same-build session state, so it cannot present a newer-MAJOR document than the build reading it.
-- **Share-links** carry no version marker; do NOT apply the absent-version => 1.0 default to them (that would over-accept versionless payloads). Define old-URL behaviour after a future schema bump (reject, read-only, or migrate) and coordinate with M08 #820.
+- **Share-links** carry no version marker; do NOT apply the absent-version => 1.0 default to them (that would over-accept versionless payloads). Define old-URL behaviour after a future schema bump (reject, read-only, or migrate) and coordinate with M008 #820.
 
 ## 7. Publishing (relationship to #571)
 
@@ -79,10 +79,10 @@ File load + server GET: gated (primary ingress). Snapshot restore (#2042): route
 
 ## 10. Follow-up issues (re-triaged)
 
-- **E (#2208) -- generic unknown-section round-trip (BUILDING NOW, own PR, M15):** preserve unknown top-level keys through load->save (capture in `toRuntimeLayout`, re-emit in `serializeLayoutToYaml`). Lands before #617 so no future additive section can silently drop. Also corrects SCHEMA.md's previously-false "unknown fields retained when saving" claim.
-- **A (#2205) -- reject-newer-major runtime gate (M03):** build with or right after #617 (cheap, un-retrofittable once newer files exist); tests for the major boundary, the app-version-bump-never-rejects case, and absent-version => 1.0.
-- **B (#2206) -- validate the localStorage working-copy read path (M15):** route through `LayoutSchema`. Real debt; not a #617 blocker.
-- **C (#2207) -- share-link explicit version marker (M08):** coordinate with #820. Deferred.
+- **E (#2208) -- generic unknown-section round-trip (BUILDING NOW, own PR, M015):** preserve unknown top-level keys through load->save (capture in `toRuntimeLayout`, re-emit in `serializeLayoutToYaml`). Lands before #617 so no future additive section can silently drop. Also corrects SCHEMA.md's previously-false "unknown fields retained when saving" claim.
+- **A (#2205) -- reject-newer-major runtime gate (M003):** build with or right after #617 (cheap, un-retrofittable once newer files exist); tests for the major boundary, the app-version-bump-never-rejects case, and absent-version => 1.0.
+- **B (#2206) -- validate the localStorage working-copy read path (M015):** route through `LayoutSchema`. Real debt; not a #617 blocker.
+- **C (#2207) -- share-link explicit version marker (M008):** coordinate with #820. Deferred.
 - ~~D -- post-#2158 snapshot/old-URL compat~~: folded into A (it is "write the migration when the first MAJOR bump is scheduled"); do not file as standalone busywork now.
 
 ---

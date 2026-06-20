@@ -1,6 +1,6 @@
 # Edit Tab Contextual Properties (#2077)
 
-Date: 2026-06-14 Issue: #2077 (feat: side panel Edit tab contextual properties) Epic: #2017 (Canvas UX Overhaul, M14) Base: #2076 (side panel architecture) merged to main
+Date: 2026-06-14 Issue: #2077 (feat: side panel Edit tab contextual properties) Epic: #2017 (Canvas UX Overhaul, M014) Base: #2076 (side panel architecture) merged to main
 
 ## Problem
 
@@ -19,7 +19,7 @@ The Edit tab in `SidePanelContent.svelte` should show properties contextual to t
 
 ## The multi-select constraint
 
-The shared selection store (`src/lib/stores/selection.svelte.ts`) is strictly single-select: one `selectedType` and one id at a time. There is no array of selected ids, no marquee, no shift-click, and no other M14 issue currently owns building a multi-select selection model. The scope guard for this slice forbids touching the shared selection store, canvas interaction, or the View tab.
+The shared selection store (`src/lib/stores/selection.svelte.ts`) is strictly single-select: one `selectedType` and one id at a time. There is no array of selected ids, no marquee, no shift-click, and no other M014 issue currently owns building a multi-select selection model. The scope guard for this slice forbids touching the shared selection store, canvas interaction, or the View tab.
 
 The only multi-entity selection the live model supports is a **bayed rack group**: a single selection that resolves to multiple racks. That is the "multi selection" this slice can honestly represent. Per-device marquee multi-select has no backing state, so the panel must not fabricate it; it lands when a future issue builds the selection model.
 
