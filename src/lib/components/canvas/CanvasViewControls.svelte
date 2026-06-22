@@ -60,16 +60,19 @@
       shortcut="Ctrl+Z"
       position="top"
     >
-      <button
-        class="control-button"
-        type="button"
-        aria-label={layoutStore.undoDescription ?? "Undo"}
-        disabled={!layoutStore.canUndo}
-        onclick={handleUndo}
-        data-testid="btn-undo"
-      >
-        <IconUndoBold size={ICON_SIZE.md} />
-      </button>
+      {#snippet triggerChild({ props })}
+        <button
+          {...props}
+          class="control-button"
+          type="button"
+          aria-label={layoutStore.undoDescription ?? "Undo"}
+          aria-disabled={!layoutStore.canUndo}
+          onclick={handleUndo}
+          data-testid="btn-undo"
+        >
+          <IconUndoBold size={ICON_SIZE.md} />
+        </button>
+      {/snippet}
     </Tooltip>
 
     <Tooltip
@@ -77,31 +80,37 @@
       shortcut="Ctrl+Shift+Z"
       position="top"
     >
-      <button
-        class="control-button"
-        type="button"
-        aria-label={layoutStore.redoDescription ?? "Redo"}
-        disabled={!layoutStore.canRedo}
-        onclick={handleRedo}
-        data-testid="btn-redo"
-      >
-        <IconRedoBold size={ICON_SIZE.md} />
-      </button>
+      {#snippet triggerChild({ props })}
+        <button
+          {...props}
+          class="control-button"
+          type="button"
+          aria-label={layoutStore.redoDescription ?? "Redo"}
+          aria-disabled={!layoutStore.canRedo}
+          onclick={handleRedo}
+          data-testid="btn-redo"
+        >
+          <IconRedoBold size={ICON_SIZE.md} />
+        </button>
+      {/snippet}
     </Tooltip>
   </div>
 
   <div class="control-group" role="group" aria-label="View actions">
     <Tooltip text="Zoom out" position="top">
-      <button
-        class="control-button"
-        type="button"
-        aria-label="Zoom out"
-        disabled={!canvasStore.canZoomOut}
-        onclick={() => canvasStore.zoomOut()}
-        data-testid="btn-zoom-out"
-      >
-        <IconMinusBold size={ICON_SIZE.md} />
-      </button>
+      {#snippet triggerChild({ props })}
+        <button
+          {...props}
+          class="control-button"
+          type="button"
+          aria-label="Zoom out"
+          aria-disabled={!canvasStore.canZoomOut}
+          onclick={() => canvasStore.zoomOut()}
+          data-testid="btn-zoom-out"
+        >
+          <IconMinusBold size={ICON_SIZE.md} />
+        </button>
+      {/snippet}
     </Tooltip>
 
     <span
@@ -115,28 +124,34 @@
     </span>
 
     <Tooltip text="Zoom in" position="top">
-      <button
-        class="control-button"
-        type="button"
-        aria-label="Zoom in"
-        disabled={!canvasStore.canZoomIn}
-        onclick={() => canvasStore.zoomIn()}
-        data-testid="btn-zoom-in"
-      >
-        <IconPlusBold size={ICON_SIZE.md} />
-      </button>
+      {#snippet triggerChild({ props })}
+        <button
+          {...props}
+          class="control-button"
+          type="button"
+          aria-label="Zoom in"
+          aria-disabled={!canvasStore.canZoomIn}
+          onclick={() => canvasStore.zoomIn()}
+          data-testid="btn-zoom-in"
+        >
+          <IconPlusBold size={ICON_SIZE.md} />
+        </button>
+      {/snippet}
     </Tooltip>
 
     <Tooltip text="Fit all" shortcut="F" position="top">
-      <button
-        class="control-button"
-        type="button"
-        aria-label="Fit all"
-        onclick={() => onfitall?.()}
-        data-testid="btn-fit-all"
-      >
-        <IconFitAllBold size={ICON_SIZE.md} />
-      </button>
+      {#snippet triggerChild({ props })}
+        <button
+          {...props}
+          class="control-button"
+          type="button"
+          aria-label="Fit all"
+          onclick={() => onfitall?.()}
+          data-testid="btn-fit-all"
+        >
+          <IconFitAllBold size={ICON_SIZE.md} />
+        </button>
+      {/snippet}
     </Tooltip>
 
     <Tooltip
@@ -144,21 +159,24 @@
       shortcut="I"
       position="top"
     >
-      <button
-        class="control-button"
-        type="button"
-        aria-label="Toggle display mode"
-        onclick={() => ontoggledisplaymode?.()}
-        data-testid="btn-display-mode"
-      >
-        {#if displayMode === "label"}
-          <IconTextBold size={ICON_SIZE.md} />
-        {:else if displayMode === "image"}
-          <IconImageBold size={ICON_SIZE.md} />
-        {:else}
-          <IconImageLabel size={ICON_SIZE.md} />
-        {/if}
-      </button>
+      {#snippet triggerChild({ props })}
+        <button
+          {...props}
+          class="control-button"
+          type="button"
+          aria-label="Toggle display mode"
+          onclick={() => ontoggledisplaymode?.()}
+          data-testid="btn-display-mode"
+        >
+          {#if displayMode === "label"}
+            <IconTextBold size={ICON_SIZE.md} />
+          {:else if displayMode === "image"}
+            <IconImageBold size={ICON_SIZE.md} />
+          {:else}
+            <IconImageLabel size={ICON_SIZE.md} />
+          {/if}
+        </button>
+      {/snippet}
     </Tooltip>
   </div>
 </div>
@@ -211,12 +229,12 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  .control-button:hover:not(:disabled) {
+  .control-button:hover:not([aria-disabled="true"]) {
     background: var(--colour-overlay-hover);
     color: var(--colour-primary);
   }
 
-  .control-button:active:not(:disabled) {
+  .control-button:active:not([aria-disabled="true"]) {
     transform: scale(0.97);
   }
 
@@ -226,7 +244,11 @@
     color: var(--colour-primary);
   }
 
-  .control-button:disabled {
+  /* aria-disabled (not native disabled) keeps the control focusable and
+     hoverable so its tooltip and shortcut hint stay reachable while the action
+     is unavailable; the click/keyboard handlers and zoom store guard against
+     acting (#2255). */
+  .control-button[aria-disabled="true"] {
     opacity: 0.45;
     cursor: not-allowed;
   }

@@ -14,7 +14,7 @@
 
   Indicators are never colour-only (WCAG 1.4.1): each row pairs a state dot
   (filled for open, outline for closed) with a text label (Active / Open /
-  Closed) and, for open rows, an aria-selected state. The list is keyboard
+  Closed) and, for the active row, an aria-current state. The list is keyboard
   navigable (Up/Down to move, Home/End to jump, Enter to open).
 -->
 <script lang="ts">
@@ -156,8 +156,12 @@
     // activation.
     if (event.target !== event.currentTarget) return;
 
+    // `.layout-item` is the row element. It serves both styling and this
+    // keyboard navigation; the rows are role="listitem" (not role="option",
+    // which forbids the focusable close button they contain), so we select by
+    // class rather than role here.
     const items = listEl
-      ? Array.from(listEl.querySelectorAll<HTMLElement>("[role='option']"))
+      ? Array.from(listEl.querySelectorAll<HTMLElement>(".layout-item"))
       : [];
     const index = items.findIndex((el) => el === event.currentTarget);
 
@@ -319,15 +323,18 @@
     </span>
     {#if onnewlayout}
       <Tooltip text="New Layout" position="bottom">
-        <button
-          type="button"
-          class="new-layout-btn"
-          onclick={onnewlayout}
-          aria-label="New Layout"
-          data-testid="btn-new-layout"
-        >
-          +
-        </button>
+        {#snippet triggerChild({ props })}
+          <button
+            {...props}
+            type="button"
+            class="new-layout-btn"
+            onclick={onnewlayout}
+            aria-label="New Layout"
+            data-testid="btn-new-layout"
+          >
+            +
+          </button>
+        {/snippet}
       </Tooltip>
     {/if}
   </div>
@@ -335,7 +342,7 @@
   <div
     bind:this={listEl}
     class="layout-items"
-    role="listbox"
+    role="list"
     aria-label="Layout library"
   >
     {#each rows as row (rowKey(row))}
@@ -347,14 +354,21 @@
         onexport={onexport ? () => exportLayout(row) : undefined}
         ondelete={() => initiateDelete(row)}
       >
+        <!-- The row is a role="listitem", not a role="option": an open row holds
+             an interactive close button, and an option may not contain focusable
+             descendants (nested-interactive, #2255). It stays a click/keyboard
+             focus stop for row selection, so the noninteractive-tabindex and
+             noninteractive-element-interactions warnings are expected here. -->
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <div
           class="layout-item"
           class:active={row.isActive}
           class:closed={!row.isOpen}
           onclick={() => activateRow(row)}
           onkeydown={(e) => handleRowKeydown(e, row)}
-          role="option"
-          aria-selected={row.isActive}
+          role="listitem"
+          aria-current={row.isActive ? "true" : undefined}
           tabindex={row.isActive ? 0 : -1}
           data-testid="layout-item-{rowKey(row)}"
         >
