@@ -9,6 +9,11 @@ import {
   loadSessionWithTimestamp,
   clearSession,
 } from "$lib/storage/working-copy";
+import {
+  saveLayoutBody,
+  getLayoutSavedAt,
+  loadWorkspaceIndex,
+} from "$lib/storage/browser-workspace";
 import { resetToastStore } from "$lib/stores/toast.svelte";
 import { downloadYamlFile } from "$lib/utils/archive";
 
@@ -107,5 +112,72 @@ describe("changesSinceExport", () => {
     expect(chip.hasEverExported).toBe(false);
     expect(chip.saveStatus).toBeDefined();
     expect(chip.consecutiveSaveFailures).toBe(0);
+  });
+
+  it("stamps lastExportedAt on markExported and clears it on load", () => {
+    const store = getLayoutStore();
+    expect(store.lastExportedAt).toBeNull();
+
+    store.markExported();
+    expect(store.lastExportedAt).not.toBeNull();
+    expect(Number.isNaN(Date.parse(store.lastExportedAt as string))).toBe(
+      false,
+    );
+
+    store.loadLayout(store.layout);
+    expect(store.lastExportedAt).toBeNull();
+  });
+
+  it("restores lastExportedAt through restoreBackupState", () => {
+    const store = getLayoutStore();
+    const stamp = "2026-06-26T12:00:00.000Z";
+    store.restoreBackupState({
+      changesSinceExport: 4,
+      hasEverExported: true,
+      lastExportedAt: stamp,
+    });
+    expect(store.lastExportedAt).toBe(stamp);
+    expect(store.changesSinceExport).toBe(4);
+    expect(store.hasEverExported).toBe(true);
+  });
+
+  it("persists and reads back lastExportedAt via the workspace library", () => {
+    const id = "test-layout-id";
+    const stamp = "2026-06-26T12:00:00.000Z";
+    const layout = getLayoutStore().layout;
+
+    saveLayoutBody(id, layout, {
+      changesSinceExport: 2,
+      hasEverExported: true,
+      lastExportedAt: stamp,
+    });
+
+    const index = loadWorkspaceIndex();
+    expect(index?.library[id]?.lastExportedAt).toBe(stamp);
+    // updatedAt is the autosave write time, exposed for the "Auto-saved" line.
+    expect(getLayoutSavedAt(id)).toBe(index?.library[id]?.updatedAt);
+  });
+
+  it("clears lastExportedAt when an explicit null is persisted (reset/load)", () => {
+    const id = "clear-export-id";
+    const layout = getLayoutStore().layout;
+
+    saveLayoutBody(id, layout, {
+      changesSinceExport: 0,
+      hasEverExported: true,
+      lastExportedAt: "2026-06-26T12:00:00.000Z",
+    });
+    expect(loadWorkspaceIndex()?.library[id]?.lastExportedAt).toBe(
+      "2026-06-26T12:00:00.000Z",
+    );
+
+    // An explicit null (the store after a reset/load) must overwrite the prior
+    // timestamp, not be coalesced back to it.
+    saveLayoutBody(id, layout, {
+      changesSinceExport: 0,
+      hasEverExported: false,
+      lastExportedAt: null,
+    });
+    expect(loadWorkspaceIndex()?.library[id]?.lastExportedAt).toBeNull();
   });
 });

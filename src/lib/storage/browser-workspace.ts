@@ -47,6 +47,8 @@ export interface LibraryEntry {
   updatedAt: string;
   changesSinceExport: number;
   hasEverExported: boolean;
+  /** ISO timestamp of the last export to a file; null if never exported. */
+  lastExportedAt: string | null;
   writeFailed: boolean;
   storageMode: StorageMode;
 }
@@ -69,6 +71,7 @@ export type LayoutBodyResult = { ok: true; layout: Layout } | { ok: false };
 export interface DurabilityInput {
   changesSinceExport: number;
   hasEverExported?: boolean;
+  lastExportedAt?: string | null;
   writeFailed?: boolean;
 }
 
@@ -104,6 +107,8 @@ function coerceLibraryEntry(
         ? changes
         : 0,
     hasEverExported: obj.hasEverExported === true,
+    lastExportedAt:
+      typeof obj.lastExportedAt === "string" ? obj.lastExportedAt : null,
     writeFailed: obj.writeFailed === true,
     storageMode: coerceStorageMode(obj.storageMode),
   };
@@ -249,10 +254,18 @@ export function saveLayoutBody(
   const previous = index.library[id];
   index.library[id] = {
     name: layout.name,
-    updatedAt: savedAt,
+    updatedAt: wrote ? savedAt : (previous?.updatedAt ?? ""),
     changesSinceExport: durability.changesSinceExport,
     hasEverExported:
       durability.hasEverExported ?? previous?.hasEverExported ?? false,
+    // Distinguish an explicit null (clear, e.g. after a layout reset/load) from
+    // an omitted value (undefined, preserve the prior timestamp). Nullish
+    // coalescing alone would treat the intentional null as "keep previous" and
+    // leave a stale "Last exported" time in the entry.
+    lastExportedAt:
+      durability.lastExportedAt !== undefined
+        ? durability.lastExportedAt
+        : (previous?.lastExportedAt ?? null),
     writeFailed: durability.writeFailed ?? !wrote,
     storageMode: previous?.storageMode ?? "browser",
   };
@@ -260,6 +273,20 @@ export function saveLayoutBody(
   saveWorkspaceIndex(index);
 
   return wrote;
+}
+
+/**
+ * The last time a layout's working copy was written to localStorage, as an ISO
+ * timestamp, or null when the layout has no library entry, has never been
+ * written (an empty updatedAt), or the last write failed. Surfaces the
+ * "Auto-saved" time in the chip popover; excludes failed writes so the chip
+ * never reports a fresh autosave time after a failed write.
+ */
+export function getLayoutSavedAt(id: string): string | null {
+  const entry = loadWorkspaceIndex()?.library[id];
+  return entry && !entry.writeFailed && entry.updatedAt
+    ? entry.updatedAt
+    : null;
 }
 
 /** Remove a layout body and drop its library entry. Open set is left to the caller. */
@@ -326,6 +353,7 @@ export function adoptLegacyAutosave(): WorkspaceIndex | null {
     updatedAt: session.savedAt ?? new Date().toISOString(),
     changesSinceExport: session.changesSinceExport,
     hasEverExported: session.hasEverExported,
+    lastExportedAt: null,
     writeFailed: false,
     storageMode: session.storageMode,
   };

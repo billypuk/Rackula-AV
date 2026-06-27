@@ -7,11 +7,10 @@
   app menu's file section, projected from the actions registry (#2446).
 
   Accessibility (#2064): state is conveyed by icon + text, never colour alone
-  (WCAG 1.4.1). The visible chip is a labelled but non-live status indicator
-  (role="status" with aria-live="off"), so it is not announced on every change.
-  The save->saved debounce cascade produces several intermediate statuses in
-  quick succession; a single hidden live region announces only the settled
-  state (debounced), so a screen reader is not spammed with intermediate ones.
+  (WCAG 1.4.1). The visible chip is a <button> with an aria-label that carries
+  the current storage state and location. Live announcements come from a
+  separate hidden sr-only span (role="status" aria-live="polite") that is
+  debounced so a screen reader is not spammed with intermediate save states.
 -->
 <script lang="ts">
   import { IconCheck, IconClock, IconWarningTriangle } from "./icons";
@@ -23,11 +22,15 @@
     getStorageMode,
     isStorageModeFromOverride,
     clearStorageModeOverride,
+    getServerBaseUpdatedAt,
+    getLayoutSavedAt,
   } from "$lib/storage";
   import { maybeSaveAs } from "$lib/utils/app-actions";
   import { evaluateBackupNudge, NUDGE_MESSAGE } from "$lib/utils/backup-nudge";
   import { safeGetItem, safeSetItem } from "$lib/utils/safe-storage";
   import ServerAvailableBanner from "./ServerAvailableBanner.svelte";
+  import { Popover } from "$lib/components/ui/Popover";
+  import StorageDetailsPopover from "./StorageDetailsPopover.svelte";
 
   const layoutStore = getLayoutStore();
   const durability = getLayoutDurability(layoutStore);
@@ -35,6 +38,13 @@
 
   // Storage mode is fixed for the session (read once; mode switches reload the page).
   const isServerMode = getStorageMode() === "server";
+
+  const locationWord = isServerMode ? "Server" : "Browser";
+  const accessibleName = $derived(
+    durability.showLocation
+      ? `Storage status: ${durability.label}, ${locationWord}`
+      : `Storage status: ${durability.label}`,
+  );
 
   const DISMISS_KEY = "Rackula:server-hint-dismissed";
 
@@ -94,25 +104,101 @@
     }, 500);
     return () => clearTimeout(timer);
   });
+
+  let open = $state(false);
+  let nowMs = $state(Date.now());
+  let closeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  // Clear a pending close timer if the component is destroyed while hovering.
+  $effect(() => () => clearTimeout(closeTimer));
+
+  // Recompute the popover's relative times only while it is open.
+  $effect(() => {
+    if (!open) return;
+    nowMs = Date.now();
+    const id = setInterval(() => {
+      nowMs = Date.now();
+    }, 30_000);
+    return () => clearInterval(id);
+  });
+
+  function hoverOpen(event: PointerEvent) {
+    if (event.pointerType === "touch") return; // touch uses tap
+    clearTimeout(closeTimer);
+    open = true;
+  }
+  function hoverClose(event: PointerEvent) {
+    if (event.pointerType === "touch") return;
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(() => {
+      open = false;
+    }, 150);
+  }
+
+  // Timestamp sources for the popover, read on open. Browser: the layout's last
+  // localStorage write (autosave) plus its last export. Server: the last server save.
+  // Reading durability.status ensures these re-run when save state changes while open.
+  const layoutId = $derived(layoutStore.layout.metadata?.id ?? null);
+  const autosaveAt = $derived(
+    open && !isServerMode && layoutId
+      ? (durability.status, getLayoutSavedAt(layoutId))
+      : null,
+  );
+  const serverSavedAt = $derived(
+    open && isServerMode ? (durability.status, getServerBaseUpdatedAt()) : null,
+  );
 </script>
 
-<div
-  class="storage-chip storage-chip-{durability.status}"
-  class:storage-chip--attention={durability.serverHint}
-  role="status"
-  aria-live="off"
-  aria-label={`Storage status: ${durability.label}`}
-  data-testid="storage-status-chip"
->
-  {#if durability.icon === "saved"}
-    <IconCheck size={ICON_SIZE.sm} />
-  {:else if durability.icon === "pending"}
-    <IconClock size={ICON_SIZE.sm} />
-  {:else}
-    <IconWarningTriangle size={ICON_SIZE.sm} />
-  {/if}
-  <span class="storage-chip-text">{durability.label}</span>
-</div>
+<Popover.Root bind:open>
+  <Popover.Trigger>
+    {#snippet child({ props })}
+      <button
+        {...props}
+        type="button"
+        class="storage-chip storage-chip-{durability.status}"
+        class:storage-chip--attention={durability.serverHint}
+        aria-label={accessibleName}
+        data-testid="storage-status-chip"
+        onpointerenter={hoverOpen}
+        onpointerleave={hoverClose}
+      >
+        {#if durability.icon === "saved"}
+          <IconCheck size={ICON_SIZE.sm} />
+        {:else if durability.icon === "pending"}
+          <IconClock size={ICON_SIZE.sm} />
+        {:else}
+          <IconWarningTriangle size={ICON_SIZE.sm} />
+        {/if}
+        <span class="storage-chip-state">{durability.shortLabel}</span>
+        {#if durability.showLocation}
+          <span class="storage-chip-sep" aria-hidden="true">.</span>
+          <span class="storage-chip-loc">{locationWord}</span>
+        {/if}
+      </button>
+    {/snippet}
+  </Popover.Trigger>
+  <Popover.Portal>
+    <Popover.Content
+      class="storage-chip-popover"
+      side="bottom"
+      sideOffset={8}
+      onpointerenter={() => clearTimeout(closeTimer)}
+      onpointerleave={hoverClose}
+    >
+      <StorageDetailsPopover
+        mode={isServerMode ? "server" : "browser"}
+        kind={durability.kind}
+        headline={durability.label}
+        icon={durability.icon}
+        changesSinceExport={durability.changesSinceExport}
+        lastExportedAt={durability.lastExportedAt}
+        {autosaveAt}
+        {serverSavedAt}
+        {nowMs}
+      />
+    </Popover.Content>
+  </Popover.Portal>
+</Popover.Root>
 
 {#if showServerBanner}
   <ServerAvailableBanner onDismiss={dismissBanner} />
@@ -139,12 +225,29 @@
     gap: var(--space-1);
     height: 28px;
     padding: 0 var(--space-2);
-    border: 1px solid var(--colour-border);
+    border: 1px solid transparent;
     border-radius: var(--radius-md);
     background: transparent;
     color: var(--colour-text);
     font-size: var(--font-size-xs);
     font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .storage-chip:hover,
+  .storage-chip[data-state="open"] {
+    background: var(--colour-surface-hover);
+  }
+  .storage-chip:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring-glow);
+  }
+  :global(.storage-chip-popover) {
+    background: var(--colour-bg);
+    border: 1px solid var(--colour-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg, 0 12px 30px rgba(0, 0, 0, 0.45));
+    z-index: var(--z-popover, 50);
   }
 
   /* Colour reinforces, never replaces, the icon + text. */
@@ -160,8 +263,16 @@
     color: var(--colour-error);
   }
 
-  .storage-chip-text {
+  .storage-chip-state {
+    font-weight: 600;
     white-space: nowrap;
+  }
+
+  /* Location is secondary: muted so the coloured state word leads. */
+  .storage-chip-sep,
+  .storage-chip-loc {
+    color: var(--colour-text-muted);
+    font-weight: 500;
   }
 
   /* Draws attention when a server is reachable in browser mode. */
