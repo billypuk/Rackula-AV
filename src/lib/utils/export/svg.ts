@@ -12,6 +12,7 @@ import type {
 import type { ImageStoreMap } from "$lib/types/images";
 import { placementKey } from "$lib/utils/placement-key";
 import { getBlockedSlots } from "../blocked-slots";
+import { effectiveFace } from "$lib/utils/effective-face";
 import {
   fitTextToWidth,
   DEVICE_LABEL_MAX_FONT,
@@ -71,16 +72,25 @@ const LIGHT_GRID = "#a0a0a0";
  * Filter devices by face for export.
  *
  * Mirrors the live preview in Rack.svelte: a device is visible on a face when
- * its placement face is "both" or matches the requested face. Full-depth
- * placements are normalised to face: "both" at placement time, so they fall
- * through the "both" branch without a per-device library lookup.
+ * its effective face is "both" or matches the requested face. The effective
+ * face is derived on read via effectiveFace, which looks the placement's type
+ * up in deviceLibrary and returns "both" for any full-depth device regardless
+ * of its stored face. Stored face is therefore non-authoritative for full-depth
+ * devices, and the per-device library lookup is required to resolve depth.
  */
 function filterDevicesByFace(
   devices: Rack["devices"],
   faceFilter: "front" | "rear" | undefined,
+  deviceLibrary: DeviceType[],
 ): Rack["devices"] {
   if (!faceFilter) return devices;
-  return devices.filter((d) => d.face === "both" || d.face === faceFilter);
+  return devices.filter((d) => {
+    const face = effectiveFace(
+      d,
+      deviceLibrary.find((dt) => dt.slug === d.device_type),
+    );
+    return face === "both" || face === faceFilter;
+  });
 }
 
 /**
@@ -819,7 +829,11 @@ export function generateExportSVG(
     }
 
     // Filter and render devices
-    const filteredDevices = filterDevicesByFace(rack.devices, faceFilter);
+    const filteredDevices = filterDevicesByFace(
+      rack.devices,
+      faceFilter,
+      deviceLibrary,
+    );
     for (const placedDevice of filteredDevices) {
       const device = deviceLibrary.find(
         (d) => d.slug === placedDevice.device_type,

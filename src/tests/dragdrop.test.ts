@@ -4,11 +4,16 @@ import {
   getDropFeedback,
   hideNativeDragGhost,
   detectContainerDropTarget,
+  detectContainerHover,
   type DragData,
 } from "$lib/utils/dragdrop";
 import type { Rack, DeviceType, PlacedDevice } from "$lib/types";
 import { findStarterDevice } from "$lib/data/starterLibrary";
-import { createTestDeviceType } from "./factories";
+import {
+  createTestRack,
+  createTestDevice,
+  createTestDeviceType,
+} from "./factories";
 import { toInternalUnits } from "$lib/utils/position";
 
 // Helper to create a placed device with internal unit position
@@ -251,14 +256,14 @@ describe("Drag and Drop Utilities", () => {
       expect(feedback).toBe("valid");
     });
 
-    it("allows drop on rear when full-depth device has face set to front", () => {
-      // Face-authoritative: face: "front" only blocks front, regardless of is_full_depth
+    it("blocks drop on rear when full-depth device is stored as front-only", () => {
+      // Full-depth devices occupy both faces regardless of stored face (#2337)
       const rackWithFrontOnlyDevice: Rack = {
         ...emptyRack,
         devices: [pd("front-full", "full-server", 5, "front")],
       };
 
-      // Dropping on rear at U5 should be valid (face: "front" doesn't block rear)
+      // Dropping on rear at U5 should be blocked (full-depth spans both faces)
       const feedback = getDropFeedback(
         rackWithFrontOnlyDevice,
         deviceLibrary,
@@ -267,7 +272,7 @@ describe("Drag and Drop Utilities", () => {
         undefined,
         "rear",
       );
-      expect(feedback).toBe("valid");
+      expect(feedback).toBe("blocked");
     });
 
     it("blocks drop on rear when device has face set to both", () => {
@@ -501,7 +506,9 @@ describe("Drag and Drop Utilities", () => {
       expect(target).toBeNull();
     });
 
-    it("ignores a front-only container when dropping on the rear face", () => {
+    it("detects a full-depth container stored as front-only when dropping on the rear face (legacy data)", () => {
+      // carrier-1u-2x2 has no is_full_depth set -> full-depth by invariant.
+      // A legacy placement with face: "front" must still be reachable from rear.
       const frontRack: Rack = {
         name: "Test Rack",
         height: 12,
@@ -530,7 +537,114 @@ describe("Drag and Drop Utilities", () => {
         U_HEIGHT,
         "rear",
       );
+      expect(target).not.toBeNull();
+    });
+
+    it("ignores a half-depth front-only container when dropping on the rear face", () => {
+      // A carrier with is_full_depth: false only occupies the front face; it
+      // must not be offered as a drop target when the view is rear.
+      const halfDepthCarrier: DeviceType = {
+        ...carrier2x2,
+        slug: "carrier-half-depth",
+        is_full_depth: false,
+      };
+      const halfDepthLibrary: DeviceType[] = [halfDepthCarrier, child];
+      const halfDepthRack = createTestRack({
+        height: 12,
+        devices: [
+          createTestDevice({
+            id: "carrier-half",
+            device_type: "carrier-half-depth",
+            position: 5,
+            face: "front",
+          }),
+        ],
+      });
+      const target = detectContainerDropTarget(
+        halfDepthRack,
+        halfDepthLibrary,
+        child,
+        170,
+        40,
+        RACK_WIDTH,
+        12,
+        U_HEIGHT,
+        "rear",
+      );
       expect(target).toBeNull();
+    });
+  });
+
+  describe("detectContainerHover full-depth face derivation (#2337)", () => {
+    // Mirror the detectContainerDropTarget fix: full-depth containers must be
+    // visible during hover even when stored face is "front".
+    const U_HEIGHT = 22;
+    const RACK_WIDTH = 220;
+    const carrier2x2 = findStarterDevice("carrier-1u-2x2")!;
+    const child = createTestDeviceType({
+      slug: "hover-child",
+      u_height: 0.5,
+      slot_width: 1,
+    });
+    const deviceLibrary: DeviceType[] = [carrier2x2, child];
+
+    it("detects a full-depth carrier stored as front-only when hovering on the rear face", () => {
+      const rack = createTestRack({
+        height: 12,
+        devices: [
+          createTestDevice({
+            id: "c1",
+            device_type: "carrier-1u-2x2",
+            position: 5,
+            face: "front",
+          }),
+        ],
+      });
+      // y=170 lands in the U5 band of a 12U rack (uHeight=22)
+      const info = detectContainerHover(
+        rack,
+        deviceLibrary,
+        child,
+        170,
+        40,
+        RACK_WIDTH,
+        12,
+        U_HEIGHT,
+        "rear",
+      );
+      expect(info).not.toBeNull();
+      expect(info?.containerId).toBe("c1");
+    });
+
+    it("returns null for a half-depth front-only carrier when hovering on the rear face", () => {
+      const halfDepth: DeviceType = {
+        ...carrier2x2,
+        slug: "carrier-half",
+        is_full_depth: false,
+      };
+      const rack = createTestRack({
+        height: 12,
+        devices: [
+          createTestDevice({
+            id: "c2",
+            device_type: "carrier-half",
+            position: 5,
+            face: "front",
+          }),
+        ],
+      });
+      const info = detectContainerHover(
+        rack,
+        [halfDepth, child],
+        child,
+        170,
+        40,
+        RACK_WIDTH,
+        12,
+        U_HEIGHT,
+        "rear",
+      );
+      expect(info).toBeNull();
     });
   });
 

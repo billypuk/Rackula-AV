@@ -66,6 +66,7 @@
   } from "$lib/utils/rack-interaction-handlers";
   import { attachPointerDragListeners } from "$lib/utils/rack-pointer-drag";
   import { createContextMenuHandlers } from "$lib/utils/rack-context-menu-handlers";
+  import { effectiveFace } from "$lib/utils/effective-face";
 
   const canvasStore = getCanvasStore();
   const viewportStore = getViewportStore();
@@ -258,10 +259,11 @@
       .map((placedDevice, originalIndex) => ({ placedDevice, originalIndex }))
       .filter(({ placedDevice }) => {
         if (placedDevice.container_id) return false;
-        return (
-          placedDevice.face === "both" ||
-          placedDevice.face === effectiveFaceFilter
+        const ef = effectiveFace(
+          placedDevice,
+          deviceLibrary.find((d) => d.slug === placedDevice.device_type),
         );
+        return ef === "both" || ef === effectiveFaceFilter;
       }),
   );
 
@@ -272,7 +274,11 @@
     >();
     rack.devices.forEach((pd, idx) => {
       if (!pd.container_id) return;
-      if (pd.face !== "both" && pd.face !== effectiveFaceFilter) return;
+      const ef = effectiveFace(
+        pd,
+        deviceLibrary.find((d) => d.slug === pd.device_type),
+      );
+      if (ef !== "both" && ef !== effectiveFaceFilter) return;
       const children = map.get(pd.container_id) ?? [];
       children.push({ placedDevice: pd, originalIndex: idx });
       map.set(pd.container_id, children);
@@ -552,6 +558,21 @@
       {/each}
     </g>
 
+    <!-- Empty-state hint: only in a face-filtered (dual) view, so an empty rear
+         reads as "nothing rear-facing here" rather than looking broken. -->
+    {#if faceFilter && visibleDevices.length === 0}
+      <text
+        class="empty-face-hint"
+        x={RACK_WIDTH / 2}
+        y={RACK_PADDING + RAIL_WIDTH + totalHeight / 2}
+        dominant-baseline="middle"
+        text-anchor="middle"
+        role="note"
+      >
+        No {faceFilter}-facing or full-depth devices
+      </text>
+    {/if}
+
     <!-- Layer 3: Drop preview (pointer drag or keyboard cursor) -->
     {#if activePreview}
       <RackDropZone
@@ -668,5 +689,15 @@
     .rack-container.placement-mode {
       transition: none;
     }
+  }
+
+  .empty-face-hint {
+    /* Muted-text token with a concrete fallback; the frontend-design pass
+       confirms the exact token. */
+    fill: var(--neutral-400, #9aa3ad);
+    font-size: 11px;
+    font-family: var(--font-family, system-ui, sans-serif);
+    pointer-events: none;
+    user-select: none;
   }
 </style>
