@@ -4,28 +4,37 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Calendar Versioning](https://calver.org/).
 
-## [Unreleased]
+## [26.6.4] - 2026-06-27
 
 A large usability release. The workspace is rebuilt around the canvas, and the storage layer is rebuilt to stop silently losing work. The rest is targeted fixes and technical-debt paydown that make the app faster to work in and more reliable. You can trust it with your data now. Please. It would mean a lot.
 
 ### Added
 
-- Command palette (Ctrl+K) runs any action or finds any device from one search box, with recents, a selection-aware empty state, device search, and click-to-place on desktop (#2212, #2213, #2214, #2341, #2352)
+- Command palette is the search input for commands: one box runs any action or finds any device, opened from the toolbar search pill or with Ctrl+K, with recents, a selection-aware empty state, device search, and click-to-place on desktop (#2212, #2213, #2214, #2341, #2352)
 - Tabbed side panel replaces the single edit panel: Layouts, Racks, and Devices tabs, contextual properties on the Edit tab, display toggles on the View tab, collapsible (#2076, #2077, #2078, #2082)
 - Floating verb bars put context actions next to the selected device or rack, including a slot control for half-width devices (#2075, #2322, #2334, #2344)
 - Layouts library lists every saved layout with cached previews, opened and managed from the sidebar (#2082, #2083, #2325)
 - Open layouts persist as toolbar tabs and restore lazily on launch (#2079, #2080, #2324)
 - Top bar reduced to workspace chrome (logo, app menu, layout name, storage status, settings); view and history controls relocated to a floating cluster at the canvas bottom-left, where the cursor already is (#2072, #2073, #2074, #2187)
+- App menu behind the Rackula mark is now the main menu: reorganized by intent, with the menu-item registry contract completed, group headings renamed for clarity, dividers between groups, and a mobile sheet that renders the same projection (#2596, #2597, #2602, #2611)
 - Settings dialog consolidates Appearance, Behaviour, and Data options (#2093)
 - Device palette gains favourites, list virtualization for large libraries, and an image on/off toggle (#2094)
 - New layouts open to a template picker instead of a blank canvas; the standalone StartScreen is gone, with entry routed through the sidebar and app menu (#2081, #2095)
 - Export-all renders every layout with per-mode framing in one pass (#2045)
 - Carrier device types host half-width and sub-U gear directly, replacing the fractional-rail model so sub-U placement is predictable (#2158, #2289, #2291, #2159)
-- Storage status chip in the toolbar shows save state at a glance (#2035)
+- Storage status chip in the toolbar shows save state at a glance, with the storage location inline and a last-save details popover on hover or tap (#2035, #2446, #2640)
+- Moving browser-stored layouts to server storage prompts before overwriting an existing server copy (#2608)
 - Pre-overwrite snapshots are taken server-side with conflict detection; the Load dialog lists and restores them (#2040, #2041, #2042)
 - Backup nudge tracks changes since the last export and warns before they are discarded, with a restore-from-file confirm step (#2034, #2038, #2039)
 - Custom device images embed as base64 in the YAML save, so one file round-trips with its images (#617)
 - Layout JSON Schema generated from the Zod schema for editor validation, under a documented versioning and compatibility policy (#1113, #2226)
+- Full-depth devices render and collide on both rack faces, so a device stored facing front also occupies and shows on the rear (#2337)
+- Keyboard alternative for placing devices, so a device can be added without a pointer (#106)
+- Device images show a load placeholder, fade in when ready, and raise a toast on failure, with accessible alt text
+- Create-custom-device promoted to a labelled button at the foot of the device palette (#2556)
+- Hover-revealed edge grip on the panel seam as a second way to collapse a side panel
+- Verb-bar and canvas-control tooltips are sourced from the command registry, so labels and shortcuts stay in step
+- MikroTik CSS326-24G-2S+RM and CSS610-8G-2S+IN switches added to the device library (#1581)
 
 ### Changed
 
@@ -38,6 +47,10 @@ A large usability release. The workspace is rebuilt around the canvas, and the s
 - Display-mode toggle icon redesigned for clarity (#2335)
 - Coffin-tapered mark adopted as the canonical logo (#2048)
 - Rack PDUs modelled as shallow power bars that render in rear view (#2337)
+- App light theme (Alucard) removed; Rackula is dark-only (#2468)
+- Edit and View tab strip unified with the sidebar's segmented-control style (#2600)
+- flip-device-face verb uses a transition-right glyph for clarity (#2400)
+- The API validates a layout against the JSON Schema before persisting it (#2449)
 
 ### Fixed
 
@@ -51,14 +64,16 @@ A large usability release. The workspace is rebuilt around the canvas, and the s
 - Export download no longer races object-URL revocation (#2201)
 - Layout loads remap rack groups and container IDs in a two-pass load (#2155)
 - Placement images survive server reconciliation and YAML round-trips (#2220, #2225)
-- Layouts mark clean after a debounced auto-save, with corrected save-toast copy (#2057, #2058, #2061, #2084)
+- Layouts mark clean after a debounced auto-save (#2057, #2058, #2061, #2084)
 - Snapshot data loss closed with strictly monotonic updatedAt and a per-layout write lock (#2067, #2233)
+- Muted-text and QR-brand contrast raised to WCAG AA, nested-interactive controls flattened, and canvas racks given a listbox parent so axe WCAG AA passes (#2255, #2256)
 
 ### Security
 
 - CSV export escapes spreadsheet formula injection (#2200)
 - Patched libssl3 and libcrypto3 for CVE-2026-45447 (alerts #80-83)
 - Automated security-alert triage via Claude Code (#2357)
+- Pinned libexpat to >=2.8.1-r0 in the deploy image for CVE-2026-45186 (#2562)
 
 ### Technical
 
@@ -69,6 +84,12 @@ A large usability release. The workspace is rebuilt around the canvas, and the s
 - Upgrade-safety net so a self-hosted deployment can take new images without losing saved data: prior-release layouts load through the real parse path in a self-discovering fixture corpus with silent-loss detection, plus a fail-closed release guard; the Docker upgrade smoke drives the compose stack from the previous released image to the new build against the same volume and confirms the saved layout survives byte-for-byte (#2448, #2515)
 - i18n deferred to M011; the orphaned Paraglide runtime removed (#2184)
 - Dev tooling hardened: cloud-safe superpowers bootstrap, worktree-aware main-edit guard, POSIX husky hooks, the /orchestrate-issues command, and pre-push gate fixes (#2102, #2288)
+- Upgrade corpus exercises the loadLayout path with v0.6 single-rack YAML fixtures (#2450, #2451)
+- Vendor asset directories normalized and the generic device library split from brand packs (#2552)
+- @testing-library/svelte pinned to 5.3.1 to restore runes compatibility in the unit suite (#2587)
+- SPA entry document revalidated on deploy so a stale cache stops serving the old build (#2599)
+- DCO sign-off section added to CONTRIBUTING (#2559)
+- Research spikes: accurate depth model for M021 (#2622) and Cloudflare Workers Static Assets for #2029 prep (#2620)
 - Dependency updates across the production, development, vitest, eslint, and api groups
 
 ## [26.6.3] - 2026-06-08
