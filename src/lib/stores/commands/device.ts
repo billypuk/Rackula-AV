@@ -103,9 +103,33 @@ export function createRemoveDeviceCommand(
   // structuredClone handles nested objects like ports and custom_fields
   const deviceCopy = structuredClone(device);
 
+  // Track the target device by ID, not by a fixed creation-time index (#2656).
+  // undo() re-appends the device to the end (mutators.ts placeDeviceRaw), which
+  // shifts array positions, so a captured index goes stale and redo would delete
+  // the wrong device. Resolve the current index by ID at execute time, mirroring
+  // createCrossRackMoveCommand's resolveIndicesDescending. currentImageId doubles
+  // as the live device ID, kept in sync across undo when placeDeviceRaw remaps it.
+  let currentImageId = device.id;
+
+  /**
+   * Find the current array index of the device tracked by currentImageId.
+   * Returns undefined when the ID is not present so execute() can no-op:
+   * falling back to the stale creation-time index could delete whichever
+   * device now occupies that position (#2656).
+   */
+  function resolveCurrentIndex(): number | undefined {
+    let i = 0;
+    while (true) {
+      const d = store.getDeviceAtIndex(i);
+      if (!d) break;
+      if (d.id === currentImageId) return i;
+      i++;
+    }
+    return undefined;
+  }
+
   // Snapshot placement images before removal for undo restoration
   const imageStore = getImageStore();
-  let currentImageId = device.id;
   const imageSnapshot = imageStore
     .getAllImages()
     .get(placementKey(layoutId, currentImageId));
@@ -118,11 +142,15 @@ export function createRemoveDeviceCommand(
     description: `Remove ${deviceName}`,
     timestamp: Date.now(),
     execute() {
+      // Resolve the target by ID at runtime so redo deletes the right device (#2656).
+      // If the device is no longer present, no-op rather than touching a stale index.
+      const targetIndex = resolveCurrentIndex();
+      if (targetIndex === undefined) return;
       // Clean up placement images using current ID (may differ from original after undo remap)
       getImageStore().removeAllDeviceImages(
         placementKey(layoutId, currentImageId),
       );
-      store.removeDeviceAtIndexRaw(index);
+      store.removeDeviceAtIndexRaw(targetIndex);
     },
     undo() {
       const placedIdx = store.placeDeviceRaw(deviceCopy);
