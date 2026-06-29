@@ -4,6 +4,8 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createStorageQuotaMiddleware } from "./storage-quota-middleware";
+import { createFilesystemDriver } from "../storage/filesystem-driver";
+import type { StorageVariables } from "../storage/driver";
 
 const originalDataDir = process.env.DATA_DIR;
 
@@ -42,11 +44,17 @@ function createTestApp(config: {
   maxLayouts: number;
   maxAssetsPerLayout: number;
 }) {
-  const app = new Hono();
+  // The filesystem driver reads DATA_DIR (set to testDir in beforeEach), so the
+  // quota middleware counts the test directory through the injected driver.
+  const driver = createFilesystemDriver();
+  const app = new Hono<{ Variables: StorageVariables }>();
+  app.use("*", async (c, next) => {
+    c.set("storage", driver);
+    await next();
+  });
   app.use(
     "*",
     createStorageQuotaMiddleware({
-      dataDir: testDir,
       maxLayouts: config.maxLayouts,
       maxAssetsPerLayout: config.maxAssetsPerLayout,
     }),
@@ -78,26 +86,35 @@ describe("createStorageQuotaMiddleware", () => {
   describe("layout quota", () => {
     it("allows layout creation when under the limit", async () => {
       const app = createTestApp({ maxLayouts: 5, maxAssetsPerLayout: 50 });
-      const res = await app.request("/layouts/new-uuid-here", {
-        method: "PUT",
-      });
+      const res = await app.request(
+        "/layouts/99999999-9999-4999-8999-999999999999",
+        {
+          method: "PUT",
+        },
+      );
       expect(res.status).toBe(201);
     });
 
     it("allows layout creation via /api/ prefix", async () => {
       const app = createTestApp({ maxLayouts: 5, maxAssetsPerLayout: 50 });
-      const res = await app.request("/api/layouts/new-uuid-here", {
-        method: "PUT",
-      });
+      const res = await app.request(
+        "/api/layouts/99999999-9999-4999-8999-999999999999",
+        {
+          method: "PUT",
+        },
+      );
       expect(res.status).toBe(201);
     });
 
     it("rejects layout creation when at the limit", async () => {
       // Already have 1 layout (created in beforeEach), set limit to 1
       const app = createTestApp({ maxLayouts: 1, maxAssetsPerLayout: 50 });
-      const res = await app.request("/layouts/new-uuid-here", {
-        method: "PUT",
-      });
+      const res = await app.request(
+        "/layouts/99999999-9999-4999-8999-999999999999",
+        {
+          method: "PUT",
+        },
+      );
       expect(res.status).toBe(429);
 
       const body = await res.json();
@@ -119,9 +136,12 @@ describe("createStorageQuotaMiddleware", () => {
 
     it("allows all requests when both quotas are unlimited (max=0)", async () => {
       const app = createTestApp({ maxLayouts: 0, maxAssetsPerLayout: 0 });
-      const res = await app.request("/layouts/new-uuid-here", {
-        method: "PUT",
-      });
+      const res = await app.request(
+        "/layouts/99999999-9999-4999-8999-999999999999",
+        {
+          method: "PUT",
+        },
+      );
       expect(res.status).toBe(201);
     });
 
@@ -135,9 +155,12 @@ describe("createStorageQuotaMiddleware", () => {
 
     it("does not include Retry-After header for hard quota errors", async () => {
       const app = createTestApp({ maxLayouts: 1, maxAssetsPerLayout: 50 });
-      const res = await app.request("/layouts/new-uuid-here", {
-        method: "PUT",
-      });
+      const res = await app.request(
+        "/layouts/99999999-9999-4999-8999-999999999999",
+        {
+          method: "PUT",
+        },
+      );
       // Retry-After is for rate limits, not hard storage quotas
       expect(res.headers.get("Retry-After")).toBeNull();
     });

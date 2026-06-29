@@ -31,7 +31,6 @@ import * as yaml from "js-yaml";
 import { UuidSchema, LayoutFileSchema } from "../schemas/layout";
 import type { StorageVariables } from "../storage/driver";
 import { SNAPSHOT_NAME_PATTERN } from "../storage/snapshot-name";
-import { deleteLayoutAssets } from "../storage/assets";
 import { logger } from "../logger";
 
 /** Header carrying the layout's updatedAt for echo-based conflict detection. */
@@ -212,18 +211,9 @@ layouts.delete("/:uuid", async (c) => {
       return c.json({ error: "Layout not found" }, 404);
     }
 
-    // Assets are now stored inside the layout folder
-    // They get deleted when the folder is removed, but we call this
-    // for any cleanup of orphaned assets or backwards compatibility
-    try {
-      await deleteLayoutAssets(uuidResult.data);
-    } catch (assetError) {
-      logger.warn(
-        { err: assetError },
-        `Failed to delete assets for layout ${uuidResult.data}`,
-      );
-    }
-
+    // deleteLayout removes the whole layout subtree, including its assets, so no
+    // separate asset cleanup is needed (a second delete would race a concurrent
+    // recreate of the same UUID).
     return c.json({ message: "Layout deleted" }, 200);
   } catch (error) {
     logger.error({ err: error }, `Failed to delete layout ${uuidResult.data}`);
