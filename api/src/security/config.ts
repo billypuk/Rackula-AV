@@ -418,6 +418,18 @@ export function resolveApiSecurityConfig(
   const DEFAULT_RATE_LIMIT_READ_MAX = 120;
   const DEFAULT_RATE_LIMIT_READ_WINDOW_MS = 60_000;
 
+  // Whether client-supplied X-Real-IP / X-Forwarded-For headers are trusted
+  // for client-identity resolution (rate limiting). Opt-in: defaults to false
+  // (fail-safe) so a directly exposed API never trusts client-spoofable
+  // forwarding headers by accident. Deployments behind a trusted reverse proxy
+  // that overwrites the header (for example nginx setting $remote_addr) must
+  // set RACKULA_TRUST_PROXY=true; the bundled nginx deployment opts in.
+  const trustProxy = parseOptionalBoolean(
+    "RACKULA_TRUST_PROXY",
+    env.RACKULA_TRUST_PROXY,
+    false,
+  );
+
   const rateLimitEnabled = parseOptionalBoolean(
     "RACKULA_RATE_LIMIT_ENABLED",
     env.RACKULA_RATE_LIMIT_ENABLED,
@@ -493,6 +505,7 @@ export function resolveApiSecurityConfig(
     csrfProtectionEnabled,
     csrfTrustedOrigins,
     originPolicyEnabled,
+    trustProxy,
     rateLimitEnabled,
     rateLimitWriteMaxRequests,
     rateLimitWriteWindowMs,
