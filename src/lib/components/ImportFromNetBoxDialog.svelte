@@ -28,11 +28,13 @@
 
   interface Props {
     open: boolean;
+    /** Slugs already in the device library, so an import gets a unique slug. */
+    existingSlugs?: string[];
     onimport?: (result: ImportResult) => void;
     oncancel?: () => void;
   }
 
-  let { open, onimport, oncancel }: Props = $props();
+  let { open, existingSlugs = [], onimport, oncancel }: Props = $props();
 
   // Input mode
   type InputMode = "paste" | "upload";
@@ -188,13 +190,21 @@
   function handleImport() {
     if (!parsedData) return;
 
-    const result = convertToDeviceType(parsedData, {
+    parseError = "";
+
+    const converted = convertToDeviceType(parsedData, {
       category: categoryOverride ?? undefined,
       colour: colourOverride ?? undefined,
       rack_widths: getRackWidths(),
+      existingSlugs,
     });
 
-    onimport?.(result);
+    if (!converted.success) {
+      parseError = converted.error;
+      return;
+    }
+
+    onimport?.(converted.result);
   }
 
   function handleCancel() {
