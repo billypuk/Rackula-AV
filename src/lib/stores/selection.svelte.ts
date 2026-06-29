@@ -7,17 +7,26 @@
  * - Selection remains valid after device additions/deletions
  */
 
-import type { PlacedDevice } from "$lib/types";
+import type { DeviceFace, PlacedDevice } from "$lib/types";
 import { selectionDebug } from "$lib/utils/debug";
 
 // Selection types
 type SelectionType = "rack" | "group" | "device" | null;
+
+// The face a device can be selected in is always a concrete rendered view; a
+// full-depth device's "both" is never a clickable copy, so it is excluded here.
+type SelectedDeviceFace = Exclude<DeviceFace, "both">;
 
 // Module-level state (using $state rune)
 let selectedType = $state<SelectionType>(null);
 let selectedRackId = $state<string | null>(null);
 let selectedGroupId = $state<string | null>(null);
 let selectedDeviceId = $state<string | null>(null);
+// The view a device was selected in (front or rear). A full-depth device
+// renders in both views under one UUID, so callers that position UI against the
+// selected element (the floating verb bar, #2646) need to know which copy was
+// clicked. Null when unknown (e.g. keyboard or palette selection).
+let selectedDeviceFace = $state<SelectedDeviceFace | null>(null);
 
 // Derived values (using $derived rune)
 const hasSelection = $derived(selectedType !== null);
@@ -33,6 +42,7 @@ export function resetSelectionStore(): void {
   selectedRackId = null;
   selectedGroupId = null;
   selectedDeviceId = null;
+  selectedDeviceFace = null;
 }
 
 /**
@@ -53,6 +63,9 @@ export function getSelectionStore() {
     },
     get selectedDeviceId() {
       return selectedDeviceId;
+    },
+    get selectedDeviceFace() {
+      return selectedDeviceFace;
     },
 
     // Derived getters
@@ -95,6 +108,7 @@ function selectRack(rackId: string): void {
   selectedRackId = rackId;
   selectedGroupId = null;
   selectedDeviceId = null;
+  selectedDeviceFace = null;
 }
 
 /**
@@ -114,18 +128,27 @@ function selectGroup(groupId: string, activeRackId?: string): void {
   selectedRackId = activeRackId ?? null;
   selectedGroupId = groupId;
   selectedDeviceId = null;
+  selectedDeviceFace = null;
 }
 
 /**
  * Select a device within a rack
  * @param rackId - ID of the rack containing the device
  * @param deviceId - Unique ID of the placed device (UUID)
+ * @param face - View the device was clicked in (front or rear); used to anchor
+ *   view-relative UI to the correct copy of a full-depth device (#2646).
+ *   Omit when the view is unknown (keyboard, palette, programmatic selection).
  */
-function selectDevice(rackId: string, deviceId: string): void {
+function selectDevice(
+  rackId: string,
+  deviceId: string,
+  face?: SelectedDeviceFace,
+): void {
   selectionDebug.state(
-    "selectDevice: %s in rack %s (prev: %s/%s)",
+    "selectDevice: %s in rack %s face %s (prev: %s/%s)",
     deviceId,
     rackId,
+    face,
     selectedType,
     selectedDeviceId,
   );
@@ -133,6 +156,7 @@ function selectDevice(rackId: string, deviceId: string): void {
   selectedRackId = rackId;
   selectedGroupId = null;
   selectedDeviceId = deviceId;
+  selectedDeviceFace = face ?? null;
 }
 
 /**
@@ -150,6 +174,7 @@ function clearSelection(): void {
   selectedRackId = null;
   selectedGroupId = null;
   selectedDeviceId = null;
+  selectedDeviceFace = null;
 }
 
 /**
