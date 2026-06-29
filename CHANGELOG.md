@@ -6,9 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [26.6.5] - 2026-06-29
+
+A stability and hardening release. Undo and redo resolve devices by id now, so the right device is affected after re-ordering. We fixed the undo bug. There was never an undo bug. Malformed or oversized layout files are caught at every read door instead of corrupting your work, and the rest is security hardening, storage-layer groundwork, and technical-debt paydown.
+
+### Fixed
+
+- Undo and redo resolve the target device by id, so redo deletes or edits the right device after an undo re-appends it (#2656, #2665)
+- No-op colour or face updates no longer run a command and wipe the redo stack (#2660)
+- Loading a layout clamps rail devices that extend above the rack back within bounds (#2661)
+- Malformed browser-workspace and autosave bodies are validated through the schema and forward-compat version gate instead of crashing startup (#2657, #2664)
+- NetBox-imported device types are validated and deduped, so an invalid u_height or slug can no longer destroy the autosave on reload (#2655)
+- Storage popover z-index, verb-bar anchoring in dual view, and toast placement (now bottom-centre) corrected (#2637, #2645, #2646)
+- Share-link decode no longer throws a Data-to-string type error (#2686)
+- Rail positions are guarded as whole-U integers at the place and move chokepoints (#2667)
+
+### Security
+
+- Share-link decode is bounded by input and decompressed size to prevent a decompression-bomb denial of service (#2658)
+- API rate limiting hardened: OIDC login initiation is throttled and spoofable client-IP headers are no longer trusted by default (#2659)
+- hono override aligned to ^4.12.27 to clear CVE-2026-54290 (#2650)
+
 ### Removed
 
 - Dead octocov coverage-badge workflow (The Count's Code Census) and its config. It had been disabled since January 2026, never ran again, and published badge JSON that nothing in the repo referenced. The orphan report/badges branch and its protecting ruleset were removed too (#2651)
+- Verified dead code with zero call sites, nine items (#2669)
+
+### Technical
+
+- Storage driver interface with a per-request dependency-injection seam, an R2 storage driver, and a runner-agnostic contract harness, laying the groundwork for the Cloudflare migration (#2624, #2625)
+- Decomposed three oversized modules: schemas/index.ts, yaml.ts, and archive.ts (#2668)
+- Device-type import ingress routed through DeviceTypeSchema (#2666)
+- Filename-slug sanitization consolidated through slugify(), URange deduped (#2670)
+- ESLint regression guards added for {@html} and raw web storage outside the storage seam (#2672)
+- Self-host header and build-env parity guard added to CI (#2032)
+- Pre-commit prettier resolved via node module resolution so it no longer fails open in worktrees (#2639)
+- Stale and flaky e2e tests aligned to shipped behaviour: mobile top bar, device labels, dual-view FRONT/REAR selectors, single-face migration counts (#2680)
+- Leftover sparse-checkout cleared in the prod smoke-test job, dev-first M018 Cloudflare migration plan documented (#2674)
 
 ## [26.6.4] - 2026-06-27
 
