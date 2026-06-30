@@ -7,6 +7,7 @@
 
 import type { Rack, DeviceType, PlacedDevice } from "$lib/types";
 import { toHumanUnits } from "./position";
+import { MIN_RACK_HEIGHT } from "$lib/types/constants";
 
 /**
  * Result of resize validation
@@ -24,6 +25,20 @@ export interface ResizeValidationResult {
 export interface ConflictInfo {
   device: PlacedDevice;
   deviceType: DeviceType | undefined;
+}
+
+/**
+ * Highest whole-U a placed device occupies (its top edge). Converts the stored
+ * internal position to human U and rounds a fractional top up. Shared by the
+ * shrink guard and the resize floor so they cannot drift (#1683, #2737).
+ */
+function getDeviceOccupiedTopU(
+  device: PlacedDevice,
+  deviceTypes: DeviceType[],
+): number {
+  const deviceType = deviceTypes.find((dt) => dt.slug === device.device_type);
+  const uHeight = deviceType?.u_height ?? 1; // Default to 1U if unknown
+  return Math.ceil(toHumanUnits(device.position) + uHeight - 1);
 }
 
 /**
@@ -53,17 +68,7 @@ export function canResizeRackTo(
   const conflicts: PlacedDevice[] = [];
 
   for (const device of rack.devices) {
-    const deviceType = deviceTypes.find((dt) => dt.slug === device.device_type);
-    const uHeight = deviceType?.u_height ?? 1; // Default to 1U if unknown
-
-    // device.position is stored in internal units (UNITS_PER_U per U).
-    // newHeight and u_height are in human U — convert before comparing,
-    // otherwise we read an inflated "U228" for a device actually at U38 (#1683).
-    const positionU = toHumanUnits(device.position);
-    const deviceTop = positionU + uHeight - 1;
-    const effectiveTop = Math.ceil(deviceTop); // Round up for fractional U
-
-    if (effectiveTop > newHeight) {
+    if (getDeviceOccupiedTopU(device, deviceTypes) > newHeight) {
       conflicts.push(device);
     }
   }
@@ -72,6 +77,61 @@ export function canResizeRackTo(
     allowed: conflicts.length === 0,
     conflicts,
   };
+}
+
+/**
+ * Lowest height (whole U) a rack can shrink to without clipping a placed
+ * device. Equals the highest occupied U across all devices, or MIN_RACK_HEIGHT
+ * for an empty rack. The canvas drag-resize clamps to this so a shrink can
+ * never drop below the topmost device, the same floor canResizeRackTo enforces.
+ */
+export function getMinResizeHeight(
+  rack: Rack,
+  deviceTypes: DeviceType[],
+): number {
+  let highest = MIN_RACK_HEIGHT;
+  for (const device of rack.devices) {
+    const top = getDeviceOccupiedTopU(device, deviceTypes);
+    if (top > highest) highest = top;
+  }
+  return highest;
+}
+
+/**
+ * Inputs for snapResizeHeight.
+ */
+export interface SnapResizeParams {
+  /** Rack height (whole U) when the drag began. */
+  startHeight: number;
+  /** Signed pixels dragged toward growth; positive grows the rack. */
+  growPx: number;
+  /** On-screen pixels per U: the rendered U height times the canvas zoom. */
+  pxPerU: number;
+  /** Lowest allowed height, from getMinResizeHeight. */
+  minHeight: number;
+  /** Highest allowed height (schema max). */
+  maxHeight: number;
+}
+
+/**
+ * Snap a pointer drag to a whole-U rack height.
+ *
+ * Rounds the drag distance to the nearest whole U so the rail invariant holds
+ * (positions stay on whole-U boundaries), then clamps to [minHeight, maxHeight].
+ * A non-positive pxPerU (a degenerate zoom) holds the start height rather than
+ * dividing by zero.
+ */
+export function snapResizeHeight({
+  startHeight,
+  growPx,
+  pxPerU,
+  minHeight,
+  maxHeight,
+}: SnapResizeParams): number {
+  if (pxPerU <= 0) return startHeight;
+  const deltaU = Math.round(growPx / pxPerU);
+  const raw = startHeight + deltaU;
+  return Math.max(minHeight, Math.min(maxHeight, raw));
 }
 
 /**
