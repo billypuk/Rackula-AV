@@ -45,6 +45,19 @@ describe("rack-resize", () => {
       expect(result.conflicts).toEqual([]);
     });
 
+    it("allows shrinking when a device is exactly at the target height boundary", () => {
+      const device = createTestDevice({ position: 12 });
+      const rack = createTestRack({ height: 42, devices: [device] });
+      const dt = createTestDeviceType({
+        slug: device.device_type,
+        u_height: 1,
+      });
+
+      const result = canResizeRackTo(rack, 12, [dt]);
+      expect(result.allowed).toBe(true);
+      expect(result.conflicts).toEqual([]);
+    });
+
     it("blocks shrinking when a device would exceed the new height", () => {
       const device = createTestDevice({ position: 20 });
       const rack = createTestRack({ height: 42, devices: [device] });
@@ -244,6 +257,13 @@ describe("rack-resize", () => {
       expect(
         store.getRackById(rack.id)!.devices.map((d) => d.position),
       ).toEqual(positionsBefore);
+
+      // Redo reapplies the shrink step and still preserves device U-numbers.
+      store.redo();
+      expect(store.getRackById(rack.id)!.height).toBe(12);
+      expect(
+        store.getRackById(rack.id)!.devices.map((d) => d.position),
+      ).toEqual(positionsBefore);
     });
 
     it("updateRackRaw targets the given rack id, not the active rack", () => {
@@ -259,6 +279,18 @@ describe("rack-resize", () => {
 
       expect(store.getRackById(rackA.id)!.height).toBe(30);
       expect(store.getRackById(rackB.id)!.height).toBe(18);
+    });
+
+    it("updateRackRaw falls back to the active rack when rack id is omitted", () => {
+      const store = getLayoutStore();
+      const rackA = store.addRack("Rack A", 24)!;
+      const rackB = store.addRack("Rack B", 18)!;
+      store.setActiveRack(rackB.id);
+
+      store.updateRackRaw({ height: 30 });
+
+      expect(store.getRackById(rackA.id)!.height).toBe(24);
+      expect(store.getRackById(rackB.id)!.height).toBe(30);
     });
   });
 });
