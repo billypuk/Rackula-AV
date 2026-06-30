@@ -11,6 +11,7 @@ import { getToastStore } from "$lib/stores/toast.svelte";
 import { dialogStore } from "$lib/stores/dialogs.svelte";
 import { DRAWER_WIDTH } from "$lib/constants/layout";
 import { handleFitAll, prepareExportQrCode } from "./app-actions";
+import { layoutDebug } from "$lib/utils/debug";
 
 /** Duplicate a rack, then fit all on success or toast the error. */
 export function handleRackContextDuplicate(rackId: string): void {
@@ -25,17 +26,33 @@ export function handleRackContextDuplicate(rackId: string): void {
   }
 }
 
-/** Select a rack and open the confirm-delete dialog targeting it. */
+/**
+ * Remove a rack via the context menu. A bay member is removed from its bay and
+ * the row closes the gap; the confirm dialog only gates a member that holds
+ * gear, so an empty member is removed immediately (#2741). A standalone rack
+ * always opens the confirm dialog.
+ */
 export function handleRackContextDelete(rackId: string): void {
   const layoutStore = getLayoutStore();
   const selectionStore = getSelectionStore();
   const rack = layoutStore.getRackById(rackId);
-  if (rack) {
-    layoutStore.setActiveRack(rackId);
-    selectionStore.selectRack(rackId);
-    dialogStore.deleteTarget = { type: "rack", name: rack.name };
-    dialogStore.open("confirmDelete");
+  if (!rack) return;
+
+  const group = layoutStore.getRackGroupForRack(rackId);
+  if (group?.layout_preset === "bayed" && rack.devices.length === 0) {
+    const { error } = layoutStore.removeRackFromBay(rackId);
+    if (error) {
+      layoutDebug.group("removeRackFromBay failed for %s: %s", rackId, error);
+    } else {
+      selectionStore.clearSelection();
+    }
+    return;
   }
+
+  layoutStore.setActiveRack(rackId);
+  selectionStore.selectRack(rackId);
+  dialogStore.deleteTarget = { type: "rack", name: rack.name };
+  dialogStore.open("confirmDelete");
 }
 
 /** Open the export dialog for the given racks; warns if none are selected. */
