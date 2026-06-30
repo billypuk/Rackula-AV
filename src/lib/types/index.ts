@@ -634,6 +634,10 @@ export interface Rack {
   devices: PlacedDevice[];
   /** Notes for this rack */
   notes?: string;
+  /** Internal depth in millimetres (default: 1000) */
+  depth_mm?: number;
+  /** Base weight of the empty rack, in kilograms (default: 0) */
+  base_weight?: number;
   /** Current view mode - runtime only, not persisted */
   view?: RackView;
 }
