@@ -1,8 +1,9 @@
 <!--
   CanvasViewControls Component
-  Bottom-left canvas cluster holding the view and history controls in two
-  visually separated groups: History (undo, redo) and View (zoom out, zoom
-  readout, zoom in, fit, display-mode lens).
+  Canvas overlay holding the view and history controls as two visually
+  separated groups anchored to opposite left corners: History (undo, redo) at
+  the canvas upper-left, and View (zoom out, zoom readout, zoom in, fit,
+  display-mode lens) at the canvas lower-left (#2697).
 
   This surfaces existing handlers; it does not own view or history logic. The
   display-mode lens here is the canonical layout-scoped control; the side panel
@@ -13,6 +14,7 @@
   import { getActionTooltip } from "$lib/actions/registry";
   import { getCanvasStore } from "$lib/stores/canvas.svelte";
   import { getLayoutStore } from "$lib/stores/layout.svelte";
+  import { getPlacementStore } from "$lib/stores/placement.svelte";
   import { getToastStore } from "$lib/stores/toast.svelte";
   import { DISPLAY_MODE_LABELS, type DisplayMode } from "$lib/types";
   import Tooltip from "../Tooltip.svelte";
@@ -37,7 +39,14 @@
 
   const canvasStore = getCanvasStore();
   const layoutStore = getLayoutStore();
+  const placementStore = getPlacementStore();
   const toastStore = getToastStore();
+
+  // The placement banner (PlacementIndicator) is a full-width top overlay shown
+  // while a device is armed, and it stacks above these controls. Drop the
+  // upper-left History group below the banner during placement so undo/redo
+  // stays reachable instead of tucking under it (#2697).
+  const isPlacing = $derived(placementStore.isPlacing);
 
   // Shortcuts come from the registry so they cannot drift from the keyboard
   // handler or help overlay (#117). Zoom in/out have no registry action (they
@@ -63,7 +72,12 @@
 </script>
 
 <div class="canvas-view-controls">
-  <div class="control-group" role="group" aria-label="History actions">
+  <div
+    class="control-group control-group--history"
+    class:control-group--below-banner={isPlacing}
+    role="group"
+    aria-label="History actions"
+  >
     <Tooltip
       text={layoutStore.undoDescription ?? "Undo"}
       shortcut={undoShortcut}
@@ -191,18 +205,35 @@
 </div>
 
 <style>
+  /* Full-region overlay: the wrapper covers the canvas so each group can anchor
+     to its own corner. It stays click-through (pointer-events: none) between the
+     corners; only the pills capture pointer events (#2697). */
   .canvas-view-controls {
     position: absolute;
-    bottom: max(var(--space-3), env(safe-area-inset-bottom, 0px));
-    left: max(var(--space-3), env(safe-area-inset-left, 0px));
+    inset: 0;
     z-index: calc(var(--z-toolbar) + 1);
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
     pointer-events: none;
+
+    /* Outer height of the placement banner (PlacementIndicator): its
+       min-height (--touch-target-min) plus its vertical padding (--space-2 top
+       and bottom) and its 2px bottom border. Kept as a single named value so
+       the below-banner offset has one source of truth; the placement-overlap
+       E2E check (responsive.spec.ts) fails loudly if the banner outgrows it. */
+    --banner-clearance: calc(
+      var(--touch-target-min) + var(--space-2) * 2 + 2px
+    );
   }
 
+  /* A group anchors to the canvas lower-left by default; the --history modifier
+     re-anchors to the upper-left. The base rule owns the left inset and a
+     bottom fallback so a group is always explicitly placed, even if a future
+     one ships without a modifier. Both anchors keep their safe-area insets so
+     the pills never tuck under a notch or home indicator on inset-aware
+     displays. */
   .control-group {
+    position: absolute;
+    left: max(var(--space-3), env(safe-area-inset-left, 0px));
+    bottom: max(var(--space-3), env(safe-area-inset-bottom, 0px));
     pointer-events: auto;
     display: inline-flex;
     align-items: center;
@@ -214,6 +245,25 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: var(--shadow-sm);
+  }
+
+  /* History anchors to the canvas upper-left. Clearing the inherited bottom
+     anchor avoids a group stretched between both edges. */
+  .control-group--history {
+    top: max(var(--space-3), env(safe-area-inset-top, 0px));
+    bottom: auto;
+  }
+
+  /* While a device is armed, the full-width placement banner occupies the top
+     edge above this group. Drop History below the banner (--banner-clearance)
+     so undo/redo never tucks under it. The transition keeps the shift from
+     snapping when placement toggles. */
+  .control-group--below-banner {
+    top: calc(
+      max(var(--space-3), env(safe-area-inset-top, 0px)) +
+        var(--banner-clearance)
+    );
+    transition: top var(--duration-fast) var(--ease-out);
   }
 
   .control-button {
@@ -273,7 +323,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .control-button {
+    .control-button,
+    .control-group--below-banner {
       transition: none;
     }
   }
