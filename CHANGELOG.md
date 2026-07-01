@@ -6,6 +6,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [26.6.6] - 2026-06-30
+
+I barely noticed the number, honestly. Shipped 6.6.4 Saturday, 6.6.5 Monday, this one today, didn't even clock it, that's just how fast we move, we're a fast team, I don't count. (Hail Satan.) Anyway, racks get created and resized directly on canvas now, no wizard, one command palette instead of the app menu. I do not think about the version. I've thought about it less than you have, and you just brought it up.
+
+Genuinely though: we're proud of this UX overhaul, and it's still a work in progress. Controls are finding their corners, a few pieces are propped against the wall, and things may shift again before they settle. Bear with us while we rearrange the furniture.
+
+### Added
+
+- Create a new rack directly on canvas, without the creation wizard (#2732, #2748)
+- Racks lay out in a single bottom-aligned row (#2733, #2751)
+- Rack width is selectable (10/19/21/23), with the frame drawn to scale (#2736, #2762)
+- Drag-resize a standalone rack, snapping to whole U with no renumbering (#2737, #2765)
+- Reorder the selected rack with move-left / move-right (#2734, #2763)
+- Rack inspector exposes depth, base weight, width, and form factor (#2738, #2749)
+- Inspector switches between rack mode and device mode depending on what's selected (#2739, #2757)
+- Create and extend a bay from the canvas, with a resistant edge-drag gesture (#2740, #2766)
+- Remove a rack from a bay, closing the row (#2741, #2768)
+- Settings toggle to enable or disable the bayed-rack affordances, on by default (#2813)
+- Command palette becomes the single command surface: unified palette projection and grouping, a toolbar search pill, explicit open state, per-context availability, and a device sub-mode; the app menu and mobile menu sheet are gone (#2775, #2776, #2777, #2778, #2779, #2800, #2803)
+
+### Changed
+
+- Canvas controls split into two corners: undo/redo history anchors to the upper-left, the zoom/view pill stays lower-left (#2697)
+- New Rack wizard removed; every new-rack entry point now creates a rack directly on the canvas (#2747)
+- Help overlay drops shortcuts already listed in the command palette and links to the keyboard-shortcuts docs (#2808)
+
+### Fixed
+
+- Command palette list stays scrollable with the footer visible on first open (#2807)
+- Bay exposes a single top-edge resize handle instead of one per member rack (#2740, #2767)
+- Banana-for-scale reference bottom-aligns with the rack (#2806)
+- Deleting a device after switching the inspector into rack mode no longer leaves a stale post-condition, so the flaky smoke test is deterministic again (#2799, #2802)
+- Empty resize-target rack ids are guarded in RackCanvasView instead of throwing (#2794)
+- Legacy U-position migration handles devices with an empty-string container_id (#2756)
+- YAML save preserves PlacedDevice label, ports, and colour override, rack show_rear, and cleared images (#2760)
+- Device library items alphabetize consistently within brands and categories (#2723, #2745)
+- A-Z device list fills the panel height instead of stopping short (#2698, #2717)
+
+### Security
+
+- Archive imports enforce size and compression-ratio limits before decompression, closing a decompression-bomb vector (#2758)
+
+### Technical
+
+- Cloudflare Workers entry point and an argon2-free auth bundle for the Workers runtime, continuing the M018 migration groundwork (#2626, #2706)
+- Per-form-factor rack frame chrome from #2752 disabled after it drew canvas artifacts; racks fall back to a single generic frame with the data path kept (#2805)
+- Dracula-pink editor highlights tokenized via semantic aliases in tokens.css (#2743)
+- Regression coverage added for rack-resize boundaries and redo, active-rack fallback, archive-guardrail boundaries, DeviceCategorySchema firewall and chassis, and the container_id migration heuristic; full E2E specs reconciled with direct on-canvas rack creation (#2761, #2795, #2796, #2797, #2798)
+- Code-quality autofixes applied across the tree (#2718, #2719, #2724, #2725)
+- CI auto-formats PRs to prevent dependency-bump format drift (#2731)
+- Repo reformatted for prettier 3.9.3 (#2726)
+- Prod smoke-test made resilient to a stale self-hosted workspace (#2728, #2729)
+- Milestone convention reconciled in the GitHub workflow doc (#2727)
+- Release and distribution architecture decision spec documented (#2722)
+- Dependency bumps: wrangler, better-auth, @cloudflare/vitest-pool-workers, js-yaml, eslint group, GitHub Actions group, production-dependencies group (lucide, js-yaml, simple-icons; pako held), development-dependencies group (#2711, #2712, #2713, #2714, #2715, #2770, #2771, #2772, #2773)
+
 ## [26.6.5] - 2026-06-29
 
 A stability and hardening release. Undo and redo resolve devices by id now, so the right device is affected after re-ordering. We fixed the undo bug. There was never an undo bug. Malformed or oversized layout files are caught at every read door instead of corrupting your work, and the rest is security hardening, storage-layer groundwork, and technical-debt paydown.
