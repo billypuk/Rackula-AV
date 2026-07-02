@@ -172,16 +172,20 @@ jobs:
     # block PRs. continue-on-error keeps the full-suite result visible as signal
     # while letting the overall Test run conclude green.
     continue-on-error: true
-    runs-on: [self-hosted, ci-runner]
+    runs-on: [self-hosted, e2e]
+    # Parallelise the full suite on the pve-prod ephemeral e2e runner (VMID 360,
+    # more cores); playwright.config.ts reads PW_WORKERS (else Playwright default).
+    env:
+      PW_WORKERS: 8
     timeout-minutes: 30
     environment: ${{ github.event.pull_request.head.repo.full_name == 'RackulaLives/Rackula' && 'e2e-trusted' || 'e2e-approval' }}
     permissions:
       contents: read
     steps:
-      # The ci-runner is not ephemeral: it reuses _work across jobs, and a prior
-      # sparse checkout (e.g. the LXC gate) leaves an index that makes
-      # actions/checkout's clean fail with "not uptodate; will not remove".
-      # Wipe the workspace first so the checkout below starts from a clean slate.
+      # The e2e runner is ephemeral (snapshot-reverts to @clean per job), so the
+      # workspace normally starts pristine. This wipe is a cheap safety net (e.g. a
+      # JIT runner that somehow reused a dirty _work) so actions/checkout's clean
+      # can never fail with "not uptodate; will not remove" — start from a clean slate.
       - name: Clean self-hosted workspace
         run: |
           if [ -n "$GITHUB_WORKSPACE" ] && [ -d "$GITHUB_WORKSPACE" ]; then
