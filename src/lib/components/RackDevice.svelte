@@ -41,6 +41,8 @@
     DEVICE_LABEL_ICON_SPACE_RIGHT,
   } from "$lib/utils/text-sizing";
   import { toHumanUnits } from "$lib/utils/position";
+  import { Tween, prefersReducedMotion } from "svelte/motion";
+  import { cubicOut } from "svelte/easing";
 
   interface Props {
     device: DeviceType;
@@ -257,6 +259,14 @@
   const yPosition = $derived(
     (rackHeight - positionHuman - device.u_height + 1) * uHeight,
   );
+
+  // Settle committed moves (drop, keyboard nudge, undo). Positions are
+  // whole-U integers that change only on commit, never per-frame during a
+  // drag, so the tween never fights the pointer.
+  const yMotion = Tween.of(() => yPosition, {
+    duration: 120,
+    easing: cubicOut,
+  });
   const deviceHeight = $derived(device.u_height * uHeight);
   // Full interior width (between rails)
   const fullWidth = $derived(rackWidth - RAIL_WIDTH * 2);
@@ -326,8 +336,12 @@
     showImage ? deviceWidth + IMAGE_OVERFLOW * 2 : deviceWidth,
   );
 
-  // Unique clipPath ID for this device instance
-  const clipId = $derived(`clip-${device.slug}-${position}`);
+  // Unique clipPath ID for this device instance. $props.id() is per component
+  // instance, so dual-view front/rear renders and same-type-same-U devices in
+  // different racks can never collide (duplicate SVG ids clip with the wrong
+  // geometry).
+  const uid = $props.id();
+  const clipId = `clip-${uid}`;
 
   // Detect if this device is a container (has slots)
   const isContainer = $derived(
@@ -617,7 +631,9 @@
   data-device-face={currentFace}
   data-device-position={position}
   data-testid="rack-device"
-  transform="translate({RAIL_WIDTH + slotXOffset}, {yPosition})"
+  transform="translate({RAIL_WIDTH + slotXOffset}, {prefersReducedMotion.current
+    ? yPosition
+    : yMotion.current})"
   class="rack-device"
   class:selected
   class:dragging={isDragging}
@@ -932,6 +948,17 @@
     stroke: var(--colour-selection);
     stroke-width: 2;
     pointer-events: none;
+    animation: selection-settle 120ms ease-out;
+  }
+
+  /* One-shot settle when the selection rect mounts. No `to` block: the
+     animation ends on the computed stroke-width (2 desktop, 3 small screens).
+     The global prefers-reduced-motion reset collapses the duration. */
+  @keyframes selection-settle {
+    from {
+      stroke-opacity: 0;
+      stroke-width: 4;
+    }
   }
 
   @media (max-width: 430px) {
