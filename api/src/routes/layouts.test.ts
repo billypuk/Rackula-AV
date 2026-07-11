@@ -202,6 +202,67 @@ describe("PUT /layouts/:uuid schema validation (#2449)", () => {
   });
 });
 
+describe("PUT /layouts/:uuid YAML alias-expansion DoS guard (#2912)", () => {
+  /**
+   * Builds a small YAML body (well under 1MB) whose metadata section carries
+   * a chain of anchors/aliases, each level referencing the previous level
+   * twice. js-yaml resolves this to a shared-reference object graph in
+   * O(input), but a naive expansion (the prior JSON.stringify guard) would
+   * materialize roughly 10 * 2^depth leaves. At depth 24 that is ~168M leaves
+   * and gigabytes of JSON text from a body of a few hundred bytes, so the old
+   * guard would take multiple seconds or OOM before returning.
+   */
+  function aliasBombYaml(depth: number): string {
+    const lines = [
+      'version: "1.0.0"',
+      "name: AliasBomb",
+      "metadata:",
+      `  id: "${URL_UUID}"`,
+      "  name: AliasBomb",
+      '  schema_version: "1.0.0"',
+      "  a0: &a0 [x, x, x, x, x, x, x, x, x, x]",
+    ];
+    for (let i = 1; i <= depth; i++) {
+      lines.push(`  a${i}: &a${i} [*a${i - 1}, *a${i - 1}]`);
+    }
+    lines.push("racks: []");
+    return lines.join("\n");
+  }
+
+  it("rejects a nested-alias alias-bomb body without expanding it", async () => {
+    const body = aliasBombYaml(24);
+    expect(Buffer.byteLength(body, "utf8")).toBeLessThan(1024 * 1024);
+
+    // Boundedness is asserted structurally, not by wall-clock: a regression to
+    // full expansion of this ~168M-leaf body would return 201 (saving it) or
+    // OOM / blow past the runner's own timeout, so the status and no-disk-write
+    // checks below catch it without a flake-prone timing assertion.
+    const res = await putLayout(URL_UUID, body);
+
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toContain("too complex");
+
+    // The alias-bomb body must not have been written to disk.
+    const entries = await readdir(testDir);
+    expect(
+      entries.find((e) => e.toLowerCase().includes(URL_UUID.toLowerCase())),
+    ).toBeUndefined();
+  });
+
+  it("still accepts and round-trips a normal layout body", async () => {
+    const body = layoutYaml("Normal Layout", URL_UUID);
+
+    const putRes = await putLayout(URL_UUID, body);
+    expect(putRes.status).toBe(201);
+
+    const getRes = await app.request(`/layouts/${URL_UUID}`);
+    expect(getRes.status).toBe(200);
+    const savedContent = await getRes.text();
+    expect(savedContent).toBe(body);
+  });
+});
+
 describe("createApp storage driver injection (#2624)", () => {
   it("routes resolve the storage driver provided via deps, not the filesystem", async () => {
     // A stub driver records which methods the routes call and returns a
