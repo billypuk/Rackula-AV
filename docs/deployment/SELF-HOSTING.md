@@ -841,7 +841,7 @@ Official images released together are guaranteed to match: a release-time CI che
 If you need build-time customizations:
 
 ```bash
-git clone https://github.com/billypuk/Rackula-AV/Rackula.git
+git clone https://github.com/billypuk/Rackula-AV.git
 cd Rackula
 
 docker build \
